@@ -33,6 +33,7 @@ const bookingRoutes = require('./routes/bookings');
 const socketRoutes = require('./routes/socket');
 const chatRoutes = require('./routes/chat');
 const notificationRoutes = require('./routes/notifications');
+const rideStatusRoutes = require('./routes/ride-status');
 
 // Create Express app
 const app = express();
@@ -127,6 +128,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/socket', socketRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api', notificationRoutes);
+app.use('/api/rides', rideStatusRoutes);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

@@ -184,6 +184,18 @@ class SocketService {
       this.handleRideLocationUpdate(socket, data);
     });
 
+    socket.on('ride:estimated_arrival', (data) => {
+      this.handleEstimatedArrivalUpdate(socket, data);
+    });
+
+    socket.on('ride:driver_location', (data) => {
+      this.handleDriverLocationUpdate(socket, data);
+    });
+
+    socket.on('ride:passenger_location', (data) => {
+      this.handlePassengerLocationUpdate(socket, data);
+    });
+
     // Handle error events
     socket.on('error', (error) => {
       this.handleError(socket, error);
@@ -580,8 +592,8 @@ class SocketService {
   }
 
   // Handle ride status update
-  handleRideStatusUpdate(socket, data) {
-    const { rideId, status, statusMessage } = data;
+  async handleRideStatusUpdate(socket, data) {
+    const { rideId, status, statusMessageAr, statusMessageEn, locationData, estimatedArrival, actualArrival } = data;
     const { userId } = socket;
 
     if (!rideId || !status) {
@@ -590,10 +602,29 @@ class SocketService {
     }
 
     try {
+      // Import the RideStatusUpdate model
+      const RideStatusUpdate = require('../models/RideStatusUpdate');
+      
+      // Create status update in database
+      const statusUpdate = await RideStatusUpdate.create({
+        rideId,
+        status,
+        statusMessageAr,
+        statusMessageEn,
+        locationData,
+        estimatedArrival,
+        actualArrival
+      });
+
       const statusData = {
+        id: statusUpdate.id,
         rideId: rideId,
         status: status,
-        statusMessage: statusMessage,
+        statusMessageAr: statusMessageAr,
+        statusMessageEn: statusMessageEn,
+        locationData: locationData,
+        estimatedArrival: estimatedArrival,
+        actualArrival: actualArrival,
         updatedBy: userId,
         timestamp: new Date().toISOString()
       };
@@ -604,7 +635,8 @@ class SocketService {
       logger.info('Ride status updated', {
         userId: userId,
         rideId: rideId,
-        status: status
+        status: status,
+        statusUpdateId: statusUpdate.id
       });
 
     } catch (error) {
@@ -618,19 +650,39 @@ class SocketService {
   }
 
   // Handle ride location update
-  handleRideLocationUpdate(socket, data) {
-    const { rideId, location } = data;
+  async handleRideLocationUpdate(socket, data) {
+    const { rideId, latitude, longitude, accuracy, speed, heading, altitude } = data;
     const { userId } = socket;
 
-    if (!rideId || !location) {
-      socket.emit('error', { message: 'Ride ID and location are required' });
+    if (!rideId || !latitude || !longitude) {
+      socket.emit('error', { message: 'Ride ID, latitude, and longitude are required' });
       return;
     }
 
     try {
+      // Import the RideLocationTracking model
+      const RideLocationTracking = require('../models/RideLocationTracking');
+      
+      // Create location tracking entry in database
+      const locationEntry = await RideLocationTracking.create({
+        rideId,
+        latitude,
+        longitude,
+        accuracy,
+        speed,
+        heading,
+        altitude
+      });
+
       const locationData = {
+        id: locationEntry.id,
         rideId: rideId,
-        location: location,
+        latitude: latitude,
+        longitude: longitude,
+        accuracy: accuracy,
+        speed: speed,
+        heading: heading,
+        altitude: altitude,
         updatedBy: userId,
         timestamp: new Date().toISOString()
       };
@@ -641,8 +693,9 @@ class SocketService {
       logger.info('Ride location updated', {
         userId: userId,
         rideId: rideId,
-        latitude: location.latitude,
-        longitude: location.longitude
+        latitude: latitude,
+        longitude: longitude,
+        locationEntryId: locationEntry.id
       });
 
     } catch (error) {
@@ -652,6 +705,174 @@ class SocketService {
         rideId: rideId
       });
       socket.emit('error', { message: 'Failed to update ride location' });
+    }
+  }
+
+  // Handle estimated arrival update
+  async handleEstimatedArrivalUpdate(socket, data) {
+    const { rideId, estimatedArrival } = data;
+    const { userId } = socket;
+
+    if (!rideId || !estimatedArrival) {
+      socket.emit('error', { message: 'Ride ID and estimated arrival are required' });
+      return;
+    }
+
+    try {
+      // Import the RideStatusUpdate model
+      const RideStatusUpdate = require('../models/RideStatusUpdate');
+      
+      // Update estimated arrival in database
+      const updated = await RideStatusUpdate.updateEstimatedArrival(rideId, estimatedArrival);
+
+      if (!updated) {
+        socket.emit('error', { message: 'No status update found for this ride' });
+        return;
+      }
+
+      const arrivalData = {
+        rideId: rideId,
+        estimatedArrival: estimatedArrival,
+        updatedBy: userId,
+        timestamp: new Date().toISOString()
+      };
+
+      // Broadcast to ride room
+      this.io.to(`ride:${rideId}`).emit('ride:estimated_arrival', arrivalData);
+
+      logger.info('Estimated arrival updated', {
+        userId: userId,
+        rideId: rideId,
+        estimatedArrival: estimatedArrival
+      });
+
+    } catch (error) {
+      logger.error('Failed to update estimated arrival', {
+        error: error.message,
+        userId: userId,
+        rideId: rideId
+      });
+      socket.emit('error', { message: 'Failed to update estimated arrival' });
+    }
+  }
+
+  // Handle driver location update
+  async handleDriverLocationUpdate(socket, data) {
+    const { rideId, latitude, longitude, accuracy, speed, heading, altitude } = data;
+    const { userId } = socket;
+
+    if (!rideId || !latitude || !longitude) {
+      socket.emit('error', { message: 'Ride ID, latitude, and longitude are required' });
+      return;
+    }
+
+    try {
+      // Import the RideLocationTracking model
+      const RideLocationTracking = require('../models/RideLocationTracking');
+      
+      // Create driver location tracking entry
+      const locationEntry = await RideLocationTracking.create({
+        rideId,
+        latitude,
+        longitude,
+        accuracy,
+        speed,
+        heading,
+        altitude
+      });
+
+      const driverLocationData = {
+        id: locationEntry.id,
+        rideId: rideId,
+        latitude: latitude,
+        longitude: longitude,
+        accuracy: accuracy,
+        speed: speed,
+        heading: heading,
+        altitude: altitude,
+        type: 'driver',
+        updatedBy: userId,
+        timestamp: new Date().toISOString()
+      };
+
+      // Broadcast to ride room
+      this.io.to(`ride:${rideId}`).emit('ride:driver_location', driverLocationData);
+
+      logger.info('Driver location updated', {
+        userId: userId,
+        rideId: rideId,
+        latitude: latitude,
+        longitude: longitude,
+        locationEntryId: locationEntry.id
+      });
+
+    } catch (error) {
+      logger.error('Failed to update driver location', {
+        error: error.message,
+        userId: userId,
+        rideId: rideId
+      });
+      socket.emit('error', { message: 'Failed to update driver location' });
+    }
+  }
+
+  // Handle passenger location update
+  async handlePassengerLocationUpdate(socket, data) {
+    const { rideId, latitude, longitude, accuracy, speed, heading, altitude } = data;
+    const { userId } = socket;
+
+    if (!rideId || !latitude || !longitude) {
+      socket.emit('error', { message: 'Ride ID, latitude, and longitude are required' });
+      return;
+    }
+
+    try {
+      // Import the RideLocationTracking model
+      const RideLocationTracking = require('../models/RideLocationTracking');
+      
+      // Create passenger location tracking entry
+      const locationEntry = await RideLocationTracking.create({
+        rideId,
+        latitude,
+        longitude,
+        accuracy,
+        speed,
+        heading,
+        altitude
+      });
+
+      const passengerLocationData = {
+        id: locationEntry.id,
+        rideId: rideId,
+        latitude: latitude,
+        longitude: longitude,
+        accuracy: accuracy,
+        speed: speed,
+        heading: heading,
+        altitude: altitude,
+        type: 'passenger',
+        updatedBy: userId,
+        timestamp: new Date().toISOString()
+      };
+
+      // Broadcast to ride room
+      this.io.to(`ride:${rideId}`).emit('ride:passenger_location', passengerLocationData);
+
+      logger.info('Passenger location updated', {
+        userId: userId,
+        rideId: rideId,
+        latitude: latitude,
+        longitude: longitude,
+        locationEntryId: locationEntry.id
+      });
+
+    } catch (error) {
+      logger.error('Failed to update passenger location', {
+        error: error.message,
+        userId: userId,
+        rideId: rideId
+      });
+      socket.emit('error', { message: 'Failed to update passenger location' });
     }
   }
 
