@@ -1,8 +1,8 @@
 const express = require('express');
 const { body, param, query } = require('express-validator');
 const chatController = require('../controllers/chatController');
-const auth = require('../middleware/auth');
-const validate = require('../middleware/validation');
+const { authenticate } = require('../middleware/auth');
+const { validateRequest } = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -149,7 +149,7 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.get('/rooms', auth, chatController.getUserChatRooms);
+router.get('/rooms', authenticate, chatController.getUserChatRooms);
 
 /**
  * @swagger
@@ -203,14 +203,14 @@ router.get('/rooms', auth, chatController.getUserChatRooms);
  *         description: Internal server error
  */
 router.post('/rooms', [
-  auth,
+  authenticate,
   body('room_type').isIn(['ride', 'support', 'group']).withMessage('Room type must be ride, support, or group'),
   body('ride_id').optional().isUUID().withMessage('Ride ID must be a valid UUID'),
   body('title_ar').optional().isString().trim().isLength({ max: 255 }).withMessage('Arabic title must be a string with max 255 characters'),
   body('title_en').optional().isString().trim().isLength({ max: 255 }).withMessage('English title must be a string with max 255 characters'),
   body('participants').optional().isArray().withMessage('Participants must be an array'),
   body('participants.*').optional().isUUID().withMessage('Each participant ID must be a valid UUID'),
-  validate
+  validateRequest
 ], chatController.createChatRoom);
 
 /**
@@ -258,9 +258,9 @@ router.post('/rooms', [
  *         description: Internal server error
  */
 router.get('/rooms/:roomId', [
-  auth,
+  authenticate,
   param('roomId').isUUID().withMessage('Room ID must be a valid UUID'),
-  validate
+  validateRequest
 ], chatController.getChatRoom);
 
 /**
@@ -312,11 +312,11 @@ router.get('/rooms/:roomId', [
  *         description: Internal server error
  */
 router.put('/rooms/:roomId', [
-  auth,
+  authenticate,
   param('roomId').isUUID().withMessage('Room ID must be a valid UUID'),
   body('title_ar').optional().isString().trim().isLength({ max: 255 }).withMessage('Arabic title must be a string with max 255 characters'),
   body('title_en').optional().isString().trim().isLength({ max: 255 }).withMessage('English title must be a string with max 255 characters'),
-  validate
+  validateRequest
 ], chatController.updateChatRoom);
 
 /**
@@ -382,12 +382,12 @@ router.put('/rooms/:roomId', [
  *         description: Internal server error
  */
 router.get('/rooms/:roomId/messages', [
-  auth,
+  authenticate,
   param('roomId').isUUID().withMessage('Room ID must be a valid UUID'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be a non-negative integer'),
   query('before').optional().isISO8601().withMessage('Before must be a valid ISO 8601 date'),
-  validate
+  validateRequest
 ], chatController.getChatMessages);
 
 /**
@@ -451,7 +451,7 @@ router.get('/rooms/:roomId/messages', [
  *         description: Internal server error
  */
 router.post('/rooms/:roomId/messages', [
-  auth,
+  authenticate,
   param('roomId').isUUID().withMessage('Room ID must be a valid UUID'),
   body('message_type').optional().isIn(['text', 'image', 'file', 'location', 'system']).withMessage('Message type must be text, image, file, location, or system'),
   body('message_text').optional().isString().trim().withMessage('Message text must be a string'),
@@ -461,7 +461,7 @@ router.post('/rooms/:roomId/messages', [
   body('media_type').optional().isString().trim().isLength({ max: 50 }).withMessage('Media type must be a string with max 50 characters'),
   body('file_size').optional().isInt({ min: 0 }).withMessage('File size must be a non-negative integer'),
   body('location_data').optional().isObject().withMessage('Location data must be an object'),
-  validate
+  validateRequest
 ], chatController.sendMessage);
 
 /**
@@ -515,12 +515,12 @@ router.post('/rooms/:roomId/messages', [
  *         description: Internal server error
  */
 router.put('/messages/:messageId', [
-  auth,
+  authenticate,
   param('messageId').isUUID().withMessage('Message ID must be a valid UUID'),
   body('message_text').optional().isString().trim().withMessage('Message text must be a string'),
   body('message_ar').optional().isString().trim().withMessage('Arabic message must be a string'),
   body('message_en').optional().isString().trim().withMessage('English message must be a string'),
-  validate
+  validateRequest
 ], chatController.updateMessage);
 
 /**
@@ -559,9 +559,9 @@ router.put('/messages/:messageId', [
  *         description: Internal server error
  */
 router.delete('/messages/:messageId', [
-  auth,
+  authenticate,
   param('messageId').isUUID().withMessage('Message ID must be a valid UUID'),
-  validate
+  validateRequest
 ], chatController.deleteMessage);
 
 /**
@@ -600,9 +600,9 @@ router.delete('/messages/:messageId', [
  *         description: Internal server error
  */
 router.get('/rooms/:roomId/participants', [
-  auth,
+  authenticate,
   param('roomId').isUUID().withMessage('Room ID must be a valid UUID'),
-  validate
+  validateRequest
 ], chatController.getChatRoomParticipants);
 
 /**
@@ -657,11 +657,11 @@ router.get('/rooms/:roomId/participants', [
  *         description: Internal server error
  */
 router.post('/rooms/:roomId/participants', [
-  auth,
+  authenticate,
   param('roomId').isUUID().withMessage('Room ID must be a valid UUID'),
   body('userId').isUUID().withMessage('User ID must be a valid UUID'),
   body('role').optional().isIn(['participant', 'admin', 'moderator']).withMessage('Role must be participant, admin, or moderator'),
-  validate
+  validateRequest
 ], chatController.addChatRoomParticipant);
 
 /**
@@ -707,10 +707,10 @@ router.post('/rooms/:roomId/participants', [
  *         description: Internal server error
  */
 router.delete('/rooms/:roomId/participants/:userId', [
-  auth,
+  authenticate,
   param('roomId').isUUID().withMessage('Room ID must be a valid UUID'),
   param('userId').isUUID().withMessage('User ID must be a valid UUID'),
-  validate
+  validateRequest
 ], chatController.removeChatRoomParticipant);
 
 /**
@@ -778,12 +778,12 @@ router.delete('/rooms/:roomId/participants/:userId', [
  *         description: Internal server error
  */
 router.get('/rooms/:roomId/search', [
-  auth,
+  authenticate,
   param('roomId').isUUID().withMessage('Room ID must be a valid UUID'),
   query('query').notEmpty().withMessage('Search query is required'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be a non-negative integer'),
-  validate
+  validateRequest
 ], chatController.searchMessages);
 
 /**
@@ -830,10 +830,10 @@ router.get('/rooms/:roomId/search', [
  *         description: Internal server error
  */
 router.post('/rooms/:roomId/mark-read', [
-  auth,
+  authenticate,
   param('roomId').isUUID().withMessage('Room ID must be a valid UUID'),
   body('before').optional().isISO8601().withMessage('Before must be a valid ISO 8601 date'),
-  validate
+  validateRequest
 ], chatController.markMessagesAsRead);
 
 /**
@@ -891,9 +891,9 @@ router.post('/rooms/:roomId/mark-read', [
  *         description: Internal server error
  */
 router.get('/rooms/:roomId/statistics', [
-  auth,
+  authenticate,
   param('roomId').isUUID().withMessage('Room ID must be a valid UUID'),
-  validate
+  validateRequest
 ], chatController.getChatRoomStatistics);
 
 module.exports = router; 
