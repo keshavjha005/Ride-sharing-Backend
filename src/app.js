@@ -99,6 +99,9 @@ app.use('/api/localization', localizationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/health', healthRoutes);
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
