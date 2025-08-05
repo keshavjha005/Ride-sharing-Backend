@@ -27,6 +27,7 @@ const uploadRoutes = require('./routes/upload');
 const healthRoutes = require('./routes/health');
 const vehicleRoutes = require('./routes/vehicles');
 const locationRoutes = require('./routes/location');
+const rideRoutes = require('./routes/rides');
 
 // Create Express app
 const app = express();
@@ -96,6 +97,7 @@ app.get('/health', (req, res) => {
 });
 
 // Swagger documentation
+// Swagger documentation
 if (config.features.enableSwagger) {
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
     explorer: true,
@@ -114,6 +116,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/location', locationRoutes);
+app.use('/api/rides', rideRoutes);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

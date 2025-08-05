@@ -17,7 +17,20 @@ const logFormat = winston.format.combine(
     }
     
     if (Object.keys(meta).length > 0) {
-      log += `\n${JSON.stringify(meta, null, 2)}`;
+      // Handle circular references in meta objects
+      const getCircularReplacer = () => {
+        const seen = new WeakSet();
+        return (key, value) => {
+          if (typeof value === "object" && value !== null) {
+            if (seen.has(value)) {
+              return '[Circular]';
+            }
+            seen.add(value);
+          }
+          return value;
+        };
+      };
+      log += `\n${JSON.stringify(meta, getCircularReplacer(), 2)}`;
     }
     
     return log;
@@ -38,7 +51,20 @@ const consoleFormat = winston.format.combine(
     }
     
     if (Object.keys(meta).length > 0) {
-      log += `\n${JSON.stringify(meta, null, 2)}`;
+      // Handle circular references in meta objects
+      const getCircularReplacer = () => {
+        const seen = new WeakSet();
+        return (key, value) => {
+          if (typeof value === "object" && value !== null) {
+            if (seen.has(value)) {
+              return '[Circular]';
+            }
+            seen.add(value);
+          }
+          return value;
+        };
+      };
+      log += `\n${JSON.stringify(meta, getCircularReplacer(), 2)}`;
     }
     
     return log;

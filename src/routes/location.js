@@ -32,8 +32,7 @@ const router = express.Router();
  *         name: location
  *         schema:
  *           type: string
- *           pattern: '^-?[0-9]+(\\.[0-9]+)?,-?[0-9]+(\\.[0-9]+)?$'
- *         description: Bias search to a specific location (format: "latitude,longitude")
+ *         description: Bias search to a specific location (format latitude,longitude)
  *         example: "40.7128,-74.0060"
  *       - in: query
  *         name: radius
