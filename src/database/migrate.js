@@ -8,6 +8,7 @@ const createSearchHistoryTable = require('./migrations/create_search_history_tab
 const createChatTables = require('./migrations/create_chat_tables');
 const createNotificationTables = require('./migrations/create_notification_tables');
 const createRideStatusTrackingTables = require('./migrations/create_ride_status_tracking_tables');
+const createInboxTables = require('./migrations/create_inbox_tables');
 
 // Migration registry
 const migrations = [
@@ -40,6 +41,11 @@ const migrations = [
     name: 'create_ride_status_tracking_tables',
     migration: createRideStatusTrackingTables,
     description: 'Create ride status updates and location tracking tables'
+  },
+  {
+    name: 'create_inbox_tables',
+    migration: createInboxTables,
+    description: 'Create inbox management system tables'
   }
 ];
 
