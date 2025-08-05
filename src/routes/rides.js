@@ -168,7 +168,19 @@ const validateRideUpdate = [
     .withMessage('Travel preferences must be an object')
 ];
 
-const validateRideId = [
+// Validation for ride status update
+const validateRideStatusUpdate = [
+  param('id')
+    .isUUID()
+    .withMessage('Valid ride ID is required'),
+  
+  body('status')
+    .isIn(['draft', 'published', 'in_progress', 'completed', 'cancelled'])
+    .withMessage('Status must be one of: draft, published, in_progress, completed, cancelled')
+];
+
+// Validation for ride ID parameter
+const validateRideIdParam = [
   param('id')
     .isUUID()
     .withMessage('Valid ride ID is required')
@@ -448,7 +460,7 @@ router.get('/my-rides', authenticate, validatePagination, rideController.getMyRi
  *       500:
  *         description: Internal server error
  */
-router.get('/:id', validateRideId, rideController.getRideById);
+router.get('/:id', validateRideIdParam, rideController.getRideById);
 
 /**
  * @swagger
@@ -514,7 +526,7 @@ router.put('/:id', authenticate, validateRideUpdate, rideController.updateRide);
  *       500:
  *         description: Internal server error
  */
-router.delete('/:id', authenticate, validateRideId, rideController.deleteRide);
+router.delete('/:id', authenticate, validateRideIdParam, rideController.deleteRide);
 
 /**
  * @swagger
@@ -543,7 +555,7 @@ router.delete('/:id', authenticate, validateRideId, rideController.deleteRide);
  *       500:
  *         description: Internal server error
  */
-router.post('/:id/publish', authenticate, validateRideId, rideController.publishRide);
+router.post('/:id/publish', authenticate, validateRideIdParam, rideController.publishRide);
 
 /**
  * @swagger
@@ -572,7 +584,7 @@ router.post('/:id/publish', authenticate, validateRideId, rideController.publish
  *       500:
  *         description: Internal server error
  */
-router.post('/:id/unpublish', authenticate, validateRideId, rideController.unpublishRide);
+router.post('/:id/unpublish', authenticate, validateRideIdParam, rideController.unpublishRide);
 
 /**
  * @swagger
@@ -595,7 +607,291 @@ router.post('/:id/unpublish', authenticate, validateRideId, rideController.unpub
  *       500:
  *         description: Internal server error
  */
-router.get('/:id/available-seats', validateRideId, rideController.getAvailableSeats);
+router.get('/:id/available-seats', validateRideIdParam, rideController.getAvailableSeats);
+
+/**
+ * @swagger
+ * /api/rides/{id}/status:
+ *   put:
+ *     tags: [Rides]
+ *     summary: Update ride status
+ *     description: Update the status of a ride (draft, published, in_progress, completed, cancelled)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Ride ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [draft, published, in_progress, completed, cancelled]
+ *                 description: New ride status
+ *     responses:
+ *       200:
+ *         description: Ride status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Ride status updated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     ride:
+ *                       $ref: '#/components/schemas/Ride'
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Not authorized to update this ride
+ *       404:
+ *         description: Ride not found
+ *       500:
+ *         description: Internal server error
+ */
+router.put('/:id/status', authenticate, validateRideStatusUpdate, rideController.updateRideStatus);
+
+/**
+ * @swagger
+ * /api/rides/{id}/complete:
+ *   post:
+ *     tags: [Rides]
+ *     summary: Complete ride
+ *     description: Mark a ride as completed and update statistics
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Ride ID
+ *     responses:
+ *       200:
+ *         description: Ride completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Ride completed successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     ride:
+ *                       $ref: '#/components/schemas/Ride'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Not authorized to complete this ride
+ *       404:
+ *         description: Ride not found
+ *       409:
+ *         description: Conflict - Ride is already completed or cancelled
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/:id/complete', authenticate, validateRideIdParam, rideController.completeRide);
+
+/**
+ * @swagger
+ * /api/rides/{id}/statistics:
+ *   get:
+ *     tags: [Rides]
+ *     summary: Get ride statistics
+ *     description: Get detailed statistics for a specific ride
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Ride ID
+ *     responses:
+ *       200:
+ *         description: Ride statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Ride statistics retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     statistics:
+ *                       type: object
+ *                       properties:
+ *                         totalBookings:
+ *                           type: integer
+ *                           description: Total number of bookings
+ *                           example: 3
+ *                         totalRevenue:
+ *                           type: number
+ *                           format: float
+ *                           description: Total revenue from bookings
+ *                           example: 75.00
+ *                         averageRating:
+ *                           type: number
+ *                           format: float
+ *                           description: Average rating for the ride
+ *                           example: 4.5
+ *                         totalRatings:
+ *                           type: integer
+ *                           description: Total number of ratings
+ *                           example: 2
+ *                         totalSeats:
+ *                           type: integer
+ *                           description: Total seats in the ride
+ *                           example: 4
+ *                         bookedSeats:
+ *                           type: integer
+ *                           description: Number of booked seats
+ *                           example: 3
+ *                         availableSeats:
+ *                           type: integer
+ *                           description: Number of available seats
+ *                           example: 1
+ *                         occupancyRate:
+ *                           type: number
+ *                           format: float
+ *                           description: Seat occupancy percentage
+ *                           example: 75.0
+ *                         status:
+ *                           type: string
+ *                           description: Current ride status
+ *                           example: "completed"
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Ride creation date
+ *                         departureDateTime:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Ride departure date and time
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Not authorized to view this ride's statistics
+ *       404:
+ *         description: Ride not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/:id/statistics', authenticate, validateRideIdParam, rideController.getRideStatistics);
+
+/**
+ * @swagger
+ * /api/rides/my-statistics:
+ *   get:
+ *     tags: [Rides]
+ *     summary: Get user ride statistics
+ *     description: Get comprehensive statistics for all rides created by the authenticated user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User ride statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User ride statistics retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     statistics:
+ *                       type: object
+ *                       properties:
+ *                         totalRides:
+ *                           type: integer
+ *                           description: Total number of rides created
+ *                           example: 10
+ *                         completedRides:
+ *                           type: integer
+ *                           description: Number of completed rides
+ *                           example: 8
+ *                         cancelledRides:
+ *                           type: integer
+ *                           description: Number of cancelled rides
+ *                           example: 1
+ *                         activeRides:
+ *                           type: integer
+ *                           description: Number of active rides
+ *                           example: 1
+ *                         totalSeatsOffered:
+ *                           type: integer
+ *                           description: Total seats offered across all rides
+ *                           example: 40
+ *                         totalSeatsBooked:
+ *                           type: integer
+ *                           description: Total seats booked across all rides
+ *                           example: 32
+ *                         averagePricePerSeat:
+ *                           type: number
+ *                           format: float
+ *                           description: Average price per seat
+ *                           example: 25.50
+ *                         totalRevenue:
+ *                           type: number
+ *                           format: float
+ *                           description: Total revenue from all rides
+ *                           example: 816.00
+ *                         completionRate:
+ *                           type: integer
+ *                           description: Percentage of completed rides
+ *                           example: 80
+ *                         occupancyRate:
+ *                           type: integer
+ *                           description: Average seat occupancy percentage
+ *                           example: 80
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/my-statistics', authenticate, rideController.getUserRideStatistics);
 
 /**
  * @swagger

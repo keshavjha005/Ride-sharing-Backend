@@ -833,6 +833,133 @@ const getSearchSuggestions = async (req, res) => {
   }
 };
 
+/**
+ * Update ride status
+ * PUT /api/rides/:id/status
+ */
+const updateRideStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const userId = req.user.id;
+
+    // Validate status
+    const validStatuses = ['draft', 'published', 'in_progress', 'completed', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ride status. Must be one of: draft, published, in_progress, completed, cancelled'
+      });
+    }
+
+    // Update ride status
+    await Ride.updateStatus(id, status, userId);
+
+    // Get updated ride data
+    const updatedRide = await Ride.findById(id);
+
+    res.json({
+      success: true,
+      message: 'Ride status updated successfully',
+      data: {
+        ride: updatedRide
+      }
+    });
+  } catch (error) {
+    logger.error('Error updating ride status:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to update ride status'
+    });
+  }
+};
+
+/**
+ * Complete ride
+ * POST /api/rides/:id/complete
+ */
+const completeRide = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Complete the ride
+    await Ride.completeRide(id, userId);
+
+    // Get updated ride data
+    const completedRide = await Ride.findById(id);
+
+    res.json({
+      success: true,
+      message: 'Ride completed successfully',
+      data: {
+        ride: completedRide
+      }
+    });
+  } catch (error) {
+    logger.error('Error completing ride:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to complete ride'
+    });
+  }
+};
+
+/**
+ * Get ride statistics
+ * GET /api/rides/:id/statistics
+ */
+const getRideStatistics = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Get ride statistics
+    const statistics = await Ride.getStatistics(id, userId);
+
+    res.json({
+      success: true,
+      message: 'Ride statistics retrieved successfully',
+      data: {
+        statistics
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting ride statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get ride statistics'
+    });
+  }
+};
+
+/**
+ * Get user ride statistics
+ * GET /api/rides/my-statistics
+ */
+const getUserRideStatistics = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get user ride statistics
+    const statistics = await Ride.getUserRideStatistics(userId);
+
+    res.json({
+      success: true,
+      message: 'User ride statistics retrieved successfully',
+      data: {
+        statistics
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting user ride statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get user ride statistics'
+    });
+  }
+};
+
 // Helper function to save search history (used internally)
 const saveSearchHistoryHelper = async (userId, pickupLocation, dropLocation) => {
   return await Ride.saveSearchHistory(userId, pickupLocation, dropLocation);
@@ -852,5 +979,9 @@ module.exports = {
   getSearchHistory,
   saveSearchHistory,
   deleteSearchHistory,
-  getSearchSuggestions
+  getSearchSuggestions,
+  updateRideStatus,
+  completeRide,
+  getRideStatistics,
+  getUserRideStatistics
 }; 

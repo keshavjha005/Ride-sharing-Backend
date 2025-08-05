@@ -27,6 +27,22 @@ describe('Ride Management API', () => {
     testUserId = testUser.id;
     authToken = generateAccessToken({ id: testUser.id, email: testUser.email });
 
+    // Create test vehicle type, brand, and model first
+    await executeQuery(
+      'INSERT INTO vehicle_types (id, name, description, is_active) VALUES (?, ?, ?, ?)',
+      ['test-type-123', 'Sedan', 'Standard sedan vehicle', true]
+    );
+
+    await executeQuery(
+      'INSERT INTO vehicle_brands (id, name, logo, is_active) VALUES (?, ?, ?, ?)',
+      ['test-brand-123', 'Toyota', 'https://example.com/toyota-logo.png', true]
+    );
+
+    await executeQuery(
+      'INSERT INTO vehicle_models (id, brand_id, name, is_active) VALUES (?, ?, ?, ?)',
+      ['test-model-123', 'test-brand-123', 'Camry', true]
+    );
+
     // Create test vehicle
     const vehicleData = {
       id: 'test-vehicle-123',
@@ -60,6 +76,10 @@ describe('Ride Management API', () => {
     if (testUserId) {
       await executeQuery('DELETE FROM users WHERE id = ?', [testUserId]);
     }
+    // Clean up vehicle data
+    await executeQuery('DELETE FROM vehicle_models WHERE id = ?', ['test-model-123']);
+    await executeQuery('DELETE FROM vehicle_brands WHERE id = ?', ['test-brand-123']);
+    await executeQuery('DELETE FROM vehicle_types WHERE id = ?', ['test-type-123']);
     await closePool();
   });
 
@@ -257,7 +277,7 @@ describe('Ride Management API', () => {
     });
 
     it('should return 403 for unauthorized user', async () => {
-      const otherUserToken = generateToken({ id: 'other-user', email: 'other@example.com' });
+      const otherUserToken = generateAccessToken({ id: 'other-user', email: 'other@example.com' });
       
       const updateData = {
         totalSeats: 6
@@ -369,6 +389,203 @@ describe('Ride Management API', () => {
         .expect(200);
 
       expect(rideResponse.body.data.status).toBe('cancelled');
+    });
+  });
+
+  describe('PUT /api/rides/:id/status', () => {
+    it('should update ride status to in_progress', async () => {
+      const response = await request(app)
+        .put(`/api/rides/${testRideId}/status`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ status: 'in_progress' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Ride status updated successfully');
+      expect(response.body.data.ride.status).toBe('in_progress');
+    });
+
+    it('should update ride status to completed', async () => {
+      const response = await request(app)
+        .put(`/api/rides/${testRideId}/status`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ status: 'completed' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Ride status updated successfully');
+      expect(response.body.data.ride.status).toBe('completed');
+    });
+
+    it('should reject invalid status', async () => {
+      const response = await request(app)
+        .put(`/api/rides/${testRideId}/status`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ status: 'invalid_status' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .put(`/api/rides/${testRideId}/status`)
+        .send({ status: 'in_progress' });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should reject non-existent ride', async () => {
+      const response = await request(app)
+        .put('/api/rides/non-existent-id/status')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ status: 'in_progress' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/rides/:id/complete', () => {
+    it('should complete a ride successfully', async () => {
+      // First update status to in_progress
+      await request(app)
+        .put(`/api/rides/${testRideId}/status`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ status: 'in_progress' });
+
+      const response = await request(app)
+        .post(`/api/rides/${testRideId}/complete`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Ride completed successfully');
+      expect(response.body.data.ride.status).toBe('completed');
+    });
+
+    it('should reject completing already completed ride', async () => {
+      const response = await request(app)
+        .post(`/api/rides/${testRideId}/complete`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Ride is already completed');
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .post(`/api/rides/${testRideId}/complete`);
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should reject non-existent ride', async () => {
+      const response = await request(app)
+        .post('/api/rides/non-existent-id/complete')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('GET /api/rides/:id/statistics', () => {
+    it('should get ride statistics successfully', async () => {
+      const response = await request(app)
+        .get(`/api/rides/${testRideId}/statistics`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Ride statistics retrieved successfully');
+      expect(response.body.data.statistics).toHaveProperty('totalBookings');
+      expect(response.body.data.statistics).toHaveProperty('totalRevenue');
+      expect(response.body.data.statistics).toHaveProperty('averageRating');
+      expect(response.body.data.statistics).toHaveProperty('totalRatings');
+      expect(response.body.data.statistics).toHaveProperty('totalSeats');
+      expect(response.body.data.statistics).toHaveProperty('bookedSeats');
+      expect(response.body.data.statistics).toHaveProperty('availableSeats');
+      expect(response.body.data.statistics).toHaveProperty('occupancyRate');
+      expect(response.body.data.statistics).toHaveProperty('status');
+      expect(response.body.data.statistics).toHaveProperty('createdAt');
+      expect(response.body.data.statistics).toHaveProperty('departureDateTime');
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .get(`/api/rides/${testRideId}/statistics`);
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should reject non-existent ride', async () => {
+      const response = await request(app)
+        .get('/api/rides/non-existent-id/statistics')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('GET /api/rides/my-statistics', () => {
+    it('should get user ride statistics successfully', async () => {
+      const response = await request(app)
+        .get('/api/rides/my-statistics')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('User ride statistics retrieved successfully');
+      expect(response.body.data.statistics).toHaveProperty('totalRides');
+      expect(response.body.data.statistics).toHaveProperty('completedRides');
+      expect(response.body.data.statistics).toHaveProperty('cancelledRides');
+      expect(response.body.data.statistics).toHaveProperty('activeRides');
+      expect(response.body.data.statistics).toHaveProperty('totalSeatsOffered');
+      expect(response.body.data.statistics).toHaveProperty('totalSeatsBooked');
+      expect(response.body.data.statistics).toHaveProperty('averagePricePerSeat');
+      expect(response.body.data.statistics).toHaveProperty('totalRevenue');
+      expect(response.body.data.statistics).toHaveProperty('completionRate');
+      expect(response.body.data.statistics).toHaveProperty('occupancyRate');
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .get('/api/rides/my-statistics');
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return zero statistics for new user', async () => {
+      // Create a new user with no rides
+      const newUser = {
+        id: 'new-user-123',
+        name: 'New User',
+        email: `new-user-${Date.now()}@example.com`,
+        password: 'password123'
+      };
+
+      await executeQuery(
+        'INSERT INTO users (id, first_name, last_name, email, password_hash, is_deleted) VALUES (?, ?, ?, ?, ?, ?)',
+        [newUser.id, 'New', 'User', newUser.email, 'hashedpassword', null]
+      );
+
+      const newAuthToken = generateAccessToken({ id: newUser.id, email: newUser.email });
+
+      const response = await request(app)
+        .get('/api/rides/my-statistics')
+        .set('Authorization', `Bearer ${newAuthToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.statistics.totalRides).toBe(0);
+      expect(response.body.data.statistics.completedRides).toBe(0);
+      expect(response.body.data.statistics.totalRevenue).toBe(0);
+
+      // Clean up
+      await executeQuery('DELETE FROM users WHERE id = ?', [newUser.id]);
     });
   });
 }); 

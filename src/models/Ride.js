@@ -707,6 +707,275 @@ class Ride {
       throw error;
     }
   }
+
+  // Update ride status
+  static async updateStatus(rideId, status, userId = null) {
+    try {
+      const validStatuses = ['draft', 'published', 'in_progress', 'completed', 'cancelled'];
+      
+      if (!validStatuses.includes(status)) {
+        throw new Error('Invalid ride status');
+      }
+
+      // Check if user can modify the ride
+      if (userId) {
+        const canModify = await this.canModify(rideId, userId);
+        if (!canModify.canModify) {
+          throw new Error(canModify.reason);
+        }
+      }
+
+      const query = `
+        UPDATE rides 
+        SET status = ?, updated_at = ?
+        WHERE id = ?
+      `;
+
+      const [result] = await db.execute(query, [status, new Date(), rideId]);
+      
+      if (result.affectedRows === 0) {
+        throw new Error('Ride not found');
+      }
+
+      logger.info(`Ride status updated: ${rideId} to ${status} by user: ${userId}`);
+      return result;
+    } catch (error) {
+      logger.error('Error updating ride status:', error);
+      throw error;
+    }
+  }
+
+  // Complete ride
+  static async completeRide(rideId, userId) {
+    try {
+      // Check if user can modify the ride
+      const canModify = await this.canModify(rideId, userId);
+      if (!canModify.canModify) {
+        throw new Error(canModify.reason);
+      }
+
+      // Get current ride status
+      const ride = await this.findById(rideId);
+      if (!ride) {
+        throw new Error('Ride not found');
+      }
+
+      if (ride.status === 'completed') {
+        throw new Error('Ride is already completed');
+      }
+
+      if (ride.status === 'cancelled') {
+        throw new Error('Cannot complete a cancelled ride');
+      }
+
+      // Update ride status to completed
+      const query = `
+        UPDATE rides 
+        SET status = 'completed', updated_at = ?
+        WHERE id = ?
+      `;
+
+      const [result] = await db.execute(query, [new Date(), rideId]);
+      
+      if (result.affectedRows === 0) {
+        throw new Error('Ride not found');
+      }
+
+      // Update ride statistics
+      await this.updateRideStatistics(rideId);
+
+      logger.info(`Ride completed: ${rideId} by user: ${userId}`);
+      return result;
+    } catch (error) {
+      logger.error('Error completing ride:', error);
+      throw error;
+    }
+  }
+
+  // Get ride statistics
+  static async getStatistics(rideId, userId = null) {
+    try {
+      // Check if user has access to ride statistics
+      if (userId) {
+        const ride = await this.findById(rideId);
+        if (!ride) {
+          throw new Error('Ride not found');
+        }
+        
+        if (ride.created_by !== userId) {
+          throw new Error('Not authorized to view ride statistics');
+        }
+      }
+
+      const query = `
+        SELECT 
+          rs.total_bookings,
+          rs.total_revenue,
+          rs.average_rating,
+          rs.total_ratings,
+          r.total_seats,
+          r.booked_seats,
+          r.status,
+          r.created_at,
+          r.departure_datetime
+        FROM ride_statistics rs
+        RIGHT JOIN rides r ON rs.ride_id = r.id
+        WHERE r.id = ?
+      `;
+
+      const [rows] = await db.execute(query, [rideId]);
+      
+      if (rows.length === 0) {
+        throw new Error('Ride not found');
+      }
+
+      const stats = rows[0];
+      
+      // Calculate additional statistics
+      const availableSeats = stats.total_seats - stats.booked_seats;
+      const occupancyRate = stats.total_seats > 0 ? (stats.booked_seats / stats.total_seats) * 100 : 0;
+      
+      return {
+        totalBookings: stats.total_bookings || 0,
+        totalRevenue: parseFloat(stats.total_revenue || 0),
+        averageRating: parseFloat(stats.average_rating || 0),
+        totalRatings: stats.total_ratings || 0,
+        totalSeats: stats.total_seats,
+        bookedSeats: stats.booked_seats,
+        availableSeats,
+        occupancyRate: Math.round(occupancyRate * 100) / 100,
+        status: stats.status,
+        createdAt: stats.created_at,
+        departureDateTime: stats.departure_datetime
+      };
+    } catch (error) {
+      logger.error('Error getting ride statistics:', error);
+      throw error;
+    }
+  }
+
+  // Update ride statistics
+  static async updateRideStatistics(rideId) {
+    try {
+      // Get booking statistics for the ride
+      const bookingQuery = `
+        SELECT 
+          COUNT(*) as total_bookings,
+          SUM(total_amount) as total_revenue
+        FROM bookings 
+        WHERE ride_id = ? AND status != 'cancelled'
+      `;
+
+      const [bookingRows] = await db.execute(bookingQuery, [rideId]);
+      const bookingStats = bookingRows[0];
+
+      // Get rating statistics (placeholder for future rating system)
+      const ratingQuery = `
+        SELECT 
+          AVG(rating) as average_rating,
+          COUNT(*) as total_ratings
+        FROM ride_ratings 
+        WHERE ride_id = ?
+      `;
+
+      let averageRating = 0;
+      let totalRatings = 0;
+
+      try {
+        const [ratingRows] = await db.execute(ratingQuery, [rideId]);
+        if (ratingRows.length > 0) {
+          averageRating = parseFloat(ratingRows[0].average_rating || 0);
+          totalRatings = parseInt(ratingRows[0].total_ratings || 0);
+        }
+      } catch (error) {
+        // Rating table might not exist yet, use default values
+        logger.warn('Rating table not found, using default values');
+      }
+
+      // Insert or update ride statistics
+      const upsertQuery = `
+        INSERT INTO ride_statistics (ride_id, total_bookings, total_revenue, average_rating, total_ratings, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          total_bookings = VALUES(total_bookings),
+          total_revenue = VALUES(total_revenue),
+          average_rating = VALUES(average_rating),
+          total_ratings = VALUES(total_ratings)
+      `;
+
+      await db.execute(upsertQuery, [
+        rideId,
+        bookingStats.total_bookings || 0,
+        bookingStats.total_revenue || 0,
+        averageRating,
+        totalRatings,
+        new Date()
+      ]);
+
+      logger.info(`Ride statistics updated: ${rideId}`);
+    } catch (error) {
+      logger.error('Error updating ride statistics:', error);
+      throw error;
+    }
+  }
+
+  // Get user ride statistics
+  static async getUserRideStatistics(userId) {
+    try {
+      const query = `
+        SELECT 
+          COUNT(*) as total_rides,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_rides,
+          SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_rides,
+          SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as active_rides,
+          SUM(total_seats) as total_seats_offered,
+          SUM(booked_seats) as total_seats_booked,
+          AVG(price_per_seat) as average_price_per_seat,
+          SUM(booked_seats * price_per_seat) as total_revenue
+        FROM rides 
+        WHERE created_by = ?
+      `;
+
+      const [rows] = await db.execute(query, [userId]);
+      
+      if (rows.length === 0) {
+        return {
+          totalRides: 0,
+          completedRides: 0,
+          cancelledRides: 0,
+          activeRides: 0,
+          totalSeatsOffered: 0,
+          totalSeatsBooked: 0,
+          averagePricePerSeat: 0,
+          totalRevenue: 0,
+          completionRate: 0,
+          occupancyRate: 0
+        };
+      }
+
+      const stats = rows[0];
+      const totalRides = parseInt(stats.total_rides || 0);
+      const completedRides = parseInt(stats.completed_rides || 0);
+      const totalSeatsOffered = parseInt(stats.total_seats_offered || 0);
+      const totalSeatsBooked = parseInt(stats.total_seats_booked || 0);
+
+      return {
+        totalRides,
+        completedRides: parseInt(stats.completed_rides || 0),
+        cancelledRides: parseInt(stats.cancelled_rides || 0),
+        activeRides: parseInt(stats.active_rides || 0),
+        totalSeatsOffered,
+        totalSeatsBooked,
+        averagePricePerSeat: parseFloat(stats.average_price_per_seat || 0),
+        totalRevenue: parseFloat(stats.total_revenue || 0),
+        completionRate: totalRides > 0 ? Math.round((completedRides / totalRides) * 100) : 0,
+        occupancyRate: totalSeatsOffered > 0 ? Math.round((totalSeatsBooked / totalSeatsOffered) * 100) : 0
+      };
+    } catch (error) {
+      logger.error('Error getting user ride statistics:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = Ride; 
