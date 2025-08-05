@@ -6,18 +6,18 @@ class User {
   // Create a new user
   static async create(userData) {
     const id = uuidv4();
-    const {
-      email,
-      phone,
-      password_hash,
-      first_name,
-      last_name,
-      profile_image_url,
-      date_of_birth,
-      gender,
-      language_code = 'en',
-      currency_code = 'USD',
-    } = userData;
+    
+    // Extract values with explicit null handling
+    const email = userData.email || null;
+    const phone = userData.phone || null;
+    const password_hash = userData.password_hash || null;
+    const first_name = userData.first_name || null;
+    const last_name = userData.last_name || null;
+    const profile_image_url = userData.profile_image_url || null;
+    const date_of_birth = userData.date_of_birth || null;
+    const gender = userData.gender || null;
+    const language_code = userData.language_code || 'en';
+    const currency_code = userData.currency_code || 'USD';
 
     const query = `
       INSERT INTO users (
@@ -26,9 +26,19 @@ class User {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
+    // Create params array with explicit null values for undefined
     const params = [
-      id, email, phone, password_hash, first_name, last_name,
-      profile_image_url, date_of_birth, gender, language_code, currency_code
+      id,
+      email || null,
+      phone || null,
+      password_hash || null,
+      first_name || null,
+      last_name || null,
+      profile_image_url || null,
+      date_of_birth || null,
+      gender || null,
+      language_code || 'en',
+      currency_code || 'USD'
     ];
 
     try {

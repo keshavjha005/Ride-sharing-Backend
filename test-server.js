@@ -1,29 +1,25 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
 
-// Basic middleware
-app.use(express.json());
-
-// Test route
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Mate Backend Test Server',
-    status: 'running',
-    timestamp: new Date().toISOString(),
-  });
-});
-
+// Simple health endpoint
 app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Test server running on http://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+const server = app.listen(3000, () => {
+  console.log('🚀 Test server running on http://localhost:3000');
+  console.log('📊 Health check: http://localhost:3000/health');
+});
+
+// Handle errors
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 }); 

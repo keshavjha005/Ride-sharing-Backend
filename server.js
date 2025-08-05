@@ -1,3 +1,4 @@
+require('dotenv').config();
 const app = require('./src/app');
 const config = require('./src/config');
 const logger = require('./src/utils/logger');
@@ -10,14 +11,8 @@ const startServer = async () => {
     if (config.server.environment === 'production') {
       await testConnection();
     } else {
-      try {
-        await testConnection();
-        logger.startup('Database connection established successfully');
-      } catch (error) {
-        logger.warn('Database connection failed, continuing without database', {
-          error: error.message,
-        });
-      }
+      // Skip database connection test in development for now
+      logger.startup('Skipping database connection test in development');
     }
     
     // Start HTTP server
@@ -63,6 +58,23 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', {
+    error: error.message,
+    stack: error.stack,
+  });
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', {
+    promise: promise,
+    reason: reason,
+  });
+  process.exit(1);
+});
 
 // Start the server
 startServer(); 

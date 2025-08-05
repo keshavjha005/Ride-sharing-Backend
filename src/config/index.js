@@ -18,9 +18,6 @@ const config = {
     database: process.env.DB_NAME || 'mate_app',
     port: parseInt(process.env.DB_PORT) || 3306,
     connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
-    acquireTimeout: 60000,
-    timeout: 60000,
-    reconnect: true,
   },
 
   // JWT configuration

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const mysql = require('mysql2/promise');
 const config = require('../config');
 const logger = require('../utils/logger');
@@ -52,6 +53,7 @@ const setupQueries = [
     currency_code VARCHAR(10) DEFAULT 'USD',
     is_verified BOOLEAN DEFAULT false,
     is_active BOOLEAN DEFAULT true,
+    is_deleted TIMESTAMP NULL,
     fcm_token TEXT,
     last_login_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -59,7 +61,8 @@ const setupQueries = [
     INDEX idx_email (email),
     INDEX idx_phone (phone),
     INDEX idx_language (language_code),
-    INDEX idx_currency (currency_code)
+    INDEX idx_currency (currency_code),
+    INDEX idx_is_deleted (is_deleted)
   );`,
   
   // Create localized_content table
@@ -175,20 +178,20 @@ const setupDatabase = async () => {
     
     // Execute setup queries
     for (const query of setupQueries) {
-      await connection.execute(query);
+      await connection.query(query);
     }
     
     logger.info('Database tables created successfully');
     
     // Execute seed queries
     for (const query of seedQueries) {
-      await connection.execute(query);
+      await connection.query(query);
     }
     
     logger.info('Database seeded successfully');
     
     // Verify setup
-    const [tables] = await connection.execute('SHOW TABLES');
+    const [tables] = await connection.query('SHOW TABLES');
     logger.info(`Database setup complete. Created ${tables.length} tables:`, {
       tables: tables.map(table => Object.values(table)[0]),
     });
