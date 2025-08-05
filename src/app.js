@@ -23,6 +23,7 @@ const currencyRoutes = require('./routes/currencies');
 const localizationRoutes = require('./routes/localization');
 const uploadRoutes = require('./routes/upload');
 const healthRoutes = require('./routes/health');
+const vehicleRoutes = require('./routes/vehicles');
 
 // Create Express app
 const app = express();
@@ -99,6 +100,7 @@ app.use('/api/currencies', currencyRoutes);
 app.use('/api/localization', localizationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/vehicles', vehicleRoutes);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
