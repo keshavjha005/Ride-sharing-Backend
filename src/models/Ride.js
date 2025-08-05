@@ -332,6 +332,381 @@ class Ride {
       throw error;
     }
   }
+
+  // Search rides with advanced filtering
+  static async search(searchCriteria) {
+    try {
+      const {
+        status = 'published',
+        passengers = 1,
+        maxPrice,
+        womenOnly,
+        driverVerified,
+        departureDate,
+        pickupLocation,
+        dropLocation,
+        sortBy = 'departure_time',
+        sortOrder = 'asc',
+        page = 1,
+        limit = 20
+      } = searchCriteria;
+
+      let conditions = ['r.status = ?', 'r.is_published = true', 'r.departure_datetime > NOW()'];
+      let params = [status];
+
+      // Add passenger capacity filter
+      conditions.push('(r.total_seats - r.booked_seats) >= ?');
+      params.push(passengers);
+
+      // Add price filter
+      if (maxPrice) {
+        conditions.push('r.price_per_seat <= ?');
+        params.push(maxPrice);
+      }
+
+      // Add women only filter
+      if (womenOnly !== undefined) {
+        conditions.push('r.women_only = ?');
+        params.push(womenOnly);
+      }
+
+      // Add driver verified filter
+      if (driverVerified !== undefined) {
+        conditions.push('r.driver_verified = ?');
+        params.push(driverVerified);
+      }
+
+      // Add departure date filter
+      if (departureDate) {
+        const date = new Date(departureDate);
+        const nextDay = new Date(date);
+        nextDay.setDate(nextDay.getDate() + 1);
+        
+        conditions.push('r.departure_datetime >= ? AND r.departure_datetime < ?');
+        params.push(date, nextDay);
+      }
+
+      // Add location filters if provided
+      if (pickupLocation || dropLocation) {
+        conditions.push('EXISTS (SELECT 1 FROM ride_locations rl WHERE rl.ride_id = r.id)');
+      }
+
+      // Build the main query
+      let query = `
+        SELECT DISTINCT r.*, 
+               u.name as creator_name, u.email as creator_email,
+               uvi.vehicle_number, uvi.vehicle_color, uvi.vehicle_year,
+               vb.name as vehicle_brand, vm.name as vehicle_model,
+               vt.name as vehicle_type,
+               (r.total_seats - r.booked_seats) as available_seats
+        FROM rides r
+        LEFT JOIN users u ON r.created_by = u.id
+        LEFT JOIN user_vehicle_information uvi ON r.vehicle_information_id = uvi.id
+        LEFT JOIN vehicle_brands vb ON uvi.vehicle_brand_id = vb.id
+        LEFT JOIN vehicle_models vm ON uvi.vehicle_model_id = vm.id
+        LEFT JOIN vehicle_types vt ON uvi.vehicle_type_id = vt.id
+        WHERE ${conditions.join(' AND ')}
+        AND u.is_deleted = 0
+      `;
+
+      // Add sorting
+      const sortField = sortBy === 'departure_time' ? 'r.departure_datetime' : 
+                       sortBy === 'price' ? 'r.price_per_seat' :
+                       sortBy === 'distance' ? 'r.distance' : 'r.created_at';
+      
+      query += ` ORDER BY ${sortField} ${sortOrder.toUpperCase()}`;
+
+      // Add pagination
+      const offset = (page - 1) * limit;
+      query += ` LIMIT ? OFFSET ?`;
+      params.push(limit, offset);
+
+      const [rows] = await db.execute(query, params);
+
+      // Get total count for pagination
+      const countQuery = `
+        SELECT COUNT(DISTINCT r.id) as total
+        FROM rides r
+        LEFT JOIN users u ON r.created_by = u.id
+        WHERE ${conditions.join(' AND ')}
+        AND u.is_deleted = 0
+      `;
+      
+      const [countRows] = await db.execute(countQuery, params.slice(0, -2));
+      const total = countRows[0].total;
+
+      // Get locations for each ride
+      for (let ride of rows) {
+        const locationsQuery = `
+          SELECT * FROM ride_locations 
+          WHERE ride_id = ? 
+          ORDER BY location_type, sequence_order
+        `;
+        const [locationRows] = await db.execute(locationsQuery, [ride.id]);
+        ride.locations = locationRows;
+
+        // Get travel preferences
+        const preferencesQuery = `
+          SELECT * FROM ride_travel_preferences 
+          WHERE ride_id = ?
+        `;
+        const [preferenceRows] = await db.execute(preferencesQuery, [ride.id]);
+        ride.travelPreferences = preferenceRows[0] || null;
+      }
+
+      return {
+        rides: rows,
+        total: total
+      };
+    } catch (error) {
+      logger.error('Error searching rides:', error);
+      throw error;
+    }
+  }
+
+  // Filter rides with specific criteria
+  static async filter(filterCriteria) {
+    try {
+      const {
+        status,
+        priceMin,
+        priceMax,
+        distanceMin,
+        distanceMax,
+        dateFrom,
+        dateTo,
+        vehicleType,
+        vehicleBrand,
+        sortBy = 'created_at',
+        sortOrder = 'desc',
+        page = 1,
+        limit = 20
+      } = filterCriteria;
+
+      let conditions = ['r.departure_datetime > NOW()'];
+      let params = [];
+
+      // Add status filter
+      if (status && status.length > 0) {
+        const placeholders = status.map(() => '?').join(',');
+        conditions.push(`r.status IN (${placeholders})`);
+        params.push(...status);
+      }
+
+      // Add price filters
+      if (priceMin) {
+        conditions.push('r.price_per_seat >= ?');
+        params.push(priceMin);
+      }
+      if (priceMax) {
+        conditions.push('r.price_per_seat <= ?');
+        params.push(priceMax);
+      }
+
+      // Add distance filters
+      if (distanceMin) {
+        conditions.push('r.distance >= ?');
+        params.push(distanceMin);
+      }
+      if (distanceMax) {
+        conditions.push('r.distance <= ?');
+        params.push(distanceMax);
+      }
+
+      // Add date filters
+      if (dateFrom) {
+        conditions.push('r.departure_datetime >= ?');
+        params.push(dateFrom);
+      }
+      if (dateTo) {
+        conditions.push('r.departure_datetime <= ?');
+        params.push(dateTo);
+      }
+
+      // Add vehicle filters
+      if (vehicleType) {
+        conditions.push('vt.name = ?');
+        params.push(vehicleType);
+      }
+      if (vehicleBrand) {
+        conditions.push('vb.name = ?');
+        params.push(vehicleBrand);
+      }
+
+      // Build the main query
+      let query = `
+        SELECT DISTINCT r.*, 
+               u.name as creator_name, u.email as creator_email,
+               uvi.vehicle_number, uvi.vehicle_color, uvi.vehicle_year,
+               vb.name as vehicle_brand, vm.name as vehicle_model,
+               vt.name as vehicle_type,
+               (r.total_seats - r.booked_seats) as available_seats
+        FROM rides r
+        LEFT JOIN users u ON r.created_by = u.id
+        LEFT JOIN user_vehicle_information uvi ON r.vehicle_information_id = uvi.id
+        LEFT JOIN vehicle_brands vb ON uvi.vehicle_brand_id = vb.id
+        LEFT JOIN vehicle_models vm ON uvi.vehicle_model_id = vm.id
+        LEFT JOIN vehicle_types vt ON uvi.vehicle_type_id = vt.id
+        WHERE ${conditions.join(' AND ')}
+        AND u.is_deleted = 0
+      `;
+
+      // Add sorting
+      const sortField = sortBy === 'departure_time' ? 'r.departure_datetime' : 
+                       sortBy === 'price' ? 'r.price_per_seat' :
+                       sortBy === 'distance' ? 'r.distance' : 'r.created_at';
+      
+      query += ` ORDER BY ${sortField} ${sortOrder.toUpperCase()}`;
+
+      // Add pagination
+      const offset = (page - 1) * limit;
+      query += ` LIMIT ? OFFSET ?`;
+      params.push(limit, offset);
+
+      const [rows] = await db.execute(query, params);
+
+      // Get total count for pagination
+      const countQuery = `
+        SELECT COUNT(DISTINCT r.id) as total
+        FROM rides r
+        LEFT JOIN users u ON r.created_by = u.id
+        LEFT JOIN user_vehicle_information uvi ON r.vehicle_information_id = uvi.id
+        LEFT JOIN vehicle_brands vb ON uvi.vehicle_brand_id = vb.id
+        LEFT JOIN vehicle_types vt ON uvi.vehicle_type_id = vt.id
+        WHERE ${conditions.join(' AND ')}
+        AND u.is_deleted = 0
+      `;
+      
+      const [countRows] = await db.execute(countQuery, params.slice(0, -2));
+      const total = countRows[0].total;
+
+      // Get locations and preferences for each ride
+      for (let ride of rows) {
+        const locationsQuery = `
+          SELECT * FROM ride_locations 
+          WHERE ride_id = ? 
+          ORDER BY location_type, sequence_order
+        `;
+        const [locationRows] = await db.execute(locationsQuery, [ride.id]);
+        ride.locations = locationRows;
+
+        const preferencesQuery = `
+          SELECT * FROM ride_travel_preferences 
+          WHERE ride_id = ?
+        `;
+        const [preferenceRows] = await db.execute(preferencesQuery, [ride.id]);
+        ride.travelPreferences = preferenceRows[0] || null;
+      }
+
+      return {
+        rides: rows,
+        total: total
+      };
+    } catch (error) {
+      logger.error('Error filtering rides:', error);
+      throw error;
+    }
+  }
+
+  // Save search to history
+  static async saveSearchHistory(userId, pickupLocation, dropLocation) {
+    try {
+      const searchId = uuidv4();
+      const query = `
+        INSERT INTO user_search_history (id, user_id, pickup_location, drop_location, search_date)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+
+      await db.execute(query, [searchId, userId, pickupLocation, dropLocation, new Date()]);
+      
+      logger.info(`Search history saved for user: ${userId}`);
+      return searchId;
+    } catch (error) {
+      logger.error('Error saving search history:', error);
+      throw error;
+    }
+  }
+
+  // Get search history for user
+  static async getSearchHistory(userId, limit = 20, offset = 0) {
+    try {
+      const query = `
+        SELECT id, pickup_location, drop_location, search_date
+        FROM user_search_history
+        WHERE user_id = ?
+        ORDER BY search_date DESC
+        LIMIT ? OFFSET ?
+      `;
+
+      const [rows] = await db.execute(query, [userId, limit, offset]);
+
+      // Get total count
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM user_search_history
+        WHERE user_id = ?
+      `;
+      const [countRows] = await db.execute(countQuery, [userId]);
+      const total = countRows[0].total;
+
+      return {
+        searches: rows,
+        total: total
+      };
+    } catch (error) {
+      logger.error('Error getting search history:', error);
+      throw error;
+    }
+  }
+
+  // Delete search history item
+  static async deleteSearchHistory(searchId, userId) {
+    try {
+      const query = `
+        DELETE FROM user_search_history
+        WHERE id = ? AND user_id = ?
+      `;
+
+      const [result] = await db.execute(query, [searchId, userId]);
+      
+      if (result.affectedRows === 0) {
+        return false;
+      }
+
+      logger.info(`Search history deleted: ${searchId}`);
+      return true;
+    } catch (error) {
+      logger.error('Error deleting search history:', error);
+      throw error;
+    }
+  }
+
+  // Get popular searches
+  static async getPopularSearches(query) {
+    try {
+      const searchQuery = `
+        SELECT pickup_location, drop_location, COUNT(*) as search_count
+        FROM user_search_history
+        WHERE (pickup_location LIKE ? OR drop_location LIKE ?)
+        GROUP BY pickup_location, drop_location
+        ORDER BY search_count DESC
+        LIMIT 5
+      `;
+
+      const searchPattern = `%${query}%`;
+      const [rows] = await db.execute(searchQuery, [searchPattern, searchPattern]);
+
+      return rows.map(row => ({
+        description: `${row.pickup_location || 'Any'} → ${row.drop_location || 'Any'}`,
+        pickupLocation: row.pickup_location,
+        dropLocation: row.drop_location,
+        searchCount: row.search_count
+      }));
+    } catch (error) {
+      logger.error('Error getting popular searches:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = Ride; 

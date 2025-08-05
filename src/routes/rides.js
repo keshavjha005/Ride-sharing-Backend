@@ -191,6 +191,138 @@ const validatePagination = [
     .withMessage('Invalid status filter')
 ];
 
+// Search and filtering validation
+const validateSearchParams = [
+  query('pickupLocation')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Pickup location must be a string between 1 and 500 characters'),
+  
+  query('dropLocation')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Drop location must be a string between 1 and 500 characters'),
+  
+  query('departureDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Departure date must be a valid ISO 8601 date'),
+  
+  query('passengers')
+    .optional()
+    .isInt({ min: 1, max: 10 })
+    .withMessage('Passengers must be between 1 and 10'),
+  
+  query('maxPrice')
+    .optional()
+    .isFloat({ min: 0.01 })
+    .withMessage('Max price must be greater than 0'),
+  
+  query('womenOnly')
+    .optional()
+    .isBoolean()
+    .withMessage('Women only must be a boolean'),
+  
+  query('driverVerified')
+    .optional()
+    .isBoolean()
+    .withMessage('Driver verified must be a boolean'),
+  
+  query('sortBy')
+    .optional()
+    .isIn(['price', 'departure_time', 'distance', 'created_at'])
+    .withMessage('Sort by must be one of: price, departure_time, distance, created_at'),
+  
+  query('sortOrder')
+    .optional()
+    .isIn(['asc', 'desc'])
+    .withMessage('Sort order must be asc or desc')
+];
+
+const validateFilterParams = [
+  query('status')
+    .optional()
+    .isString()
+    .withMessage('Status must be a string'),
+  
+  query('priceMin')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Price min must be a non-negative number'),
+  
+  query('priceMax')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Price max must be a non-negative number'),
+  
+  query('distanceMin')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Distance min must be a non-negative number'),
+  
+  query('distanceMax')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Distance max must be a non-negative number'),
+  
+  query('dateFrom')
+    .optional()
+    .isISO8601()
+    .withMessage('Date from must be a valid ISO 8601 date'),
+  
+  query('dateTo')
+    .optional()
+    .isISO8601()
+    .withMessage('Date to must be a valid ISO 8601 date'),
+  
+  query('vehicleType')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Vehicle type must be a string between 1 and 100 characters'),
+  
+  query('vehicleBrand')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Vehicle brand must be a string between 1 and 100 characters')
+];
+
+const validateSearchHistoryParams = [
+  body('pickupLocation')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Pickup location must be a string between 1 and 500 characters'),
+  
+  body('dropLocation')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Drop location must be a string between 1 and 500 characters')
+];
+
+const validateSearchSuggestionsParams = [
+  query('query')
+    .isString()
+    .trim()
+    .isLength({ min: 2, max: 200 })
+    .withMessage('Search query must be between 2 and 200 characters'),
+  
+  query('type')
+    .optional()
+    .isIn(['location', 'popular'])
+    .withMessage('Type must be location or popular')
+];
+
 // Routes
 
 /**
@@ -258,27 +390,6 @@ const validatePagination = [
  */
 router.post('/', authenticate, validateRideCreation, rideController.createRide);
 
-/**
- * @swagger
- * /api/rides/{id}:
- *   get:
- *     summary: Get ride details by ID
- *     tags: [Rides]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *     responses:
- *       200:
- *         description: Ride details retrieved successfully
- *       404:
- *         description: Ride not found
- *       500:
- *         description: Internal server error
- */
 /**
  * @swagger
  * /api/rides/my-rides:
@@ -485,5 +596,268 @@ router.post('/:id/unpublish', authenticate, validateRideId, rideController.unpub
  *         description: Internal server error
  */
 router.get('/:id/available-seats', validateRideId, rideController.getAvailableSeats);
+
+/**
+ * @swagger
+ * /api/rides/search:
+ *   get:
+ *     summary: Search rides with advanced filtering
+ *     description: Search for available rides with various filters including location, price, passengers, and preferences
+ *     tags: [Rides]
+ *     parameters:
+ *       - in: query
+ *         name: pickupLocation
+ *         schema:
+ *           type: string
+ *         description: Pickup location address
+ *         example: "New York, NY"
+ *       - in: query
+ *         name: dropLocation
+ *         schema:
+ *           type: string
+ *         description: Drop location address
+ *         example: "Boston, MA"
+ *       - in: query
+ *         name: departureDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Departure date (YYYY-MM-DD)
+ *         example: "2024-01-15"
+ *       - in: query
+ *         name: passengers
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 10
+ *         description: Number of passengers
+ *         example: 2
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0.01
+ *         description: Maximum price per seat
+ *         example: 50.00
+ *       - in: query
+ *         name: womenOnly
+ *         schema:
+ *           type: boolean
+ *         description: Filter for women-only rides
+ *         example: false
+ *       - in: query
+ *         name: driverVerified
+ *         schema:
+ *           type: boolean
+ *         description: Filter for verified drivers only
+ *         example: true
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [price, departure_time, distance, created_at]
+ *         description: Sort field
+ *         example: "departure_time"
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort order
+ *         example: "asc"
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *         description: Items per page
+ *         example: 20
+ *     responses:
+ *       200:
+ *         description: Rides found successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Rides found successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     rides:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Ride'
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *                     filters:
+ *                       type: object
+ *                       properties:
+ *                         pickupLocation:
+ *                           type: string
+ *                         dropLocation:
+ *                           type: string
+ *                         departureDate:
+ *                           type: string
+ *                         passengers:
+ *                           type: integer
+ *                         maxPrice:
+ *                           type: number
+ *                         womenOnly:
+ *                           type: boolean
+ *                         driverVerified:
+ *                           type: boolean
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/search', validateSearchParams, rideController.searchRides);
+
+/**
+ * @swagger
+ * /api/rides/filter:
+ *   get:
+ *     summary: Filter rides with specific criteria
+ *     description: Filter rides based on various criteria including price range, distance, dates, and vehicle information
+ *     tags: [Rides]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of ride statuses
+ *         example: "published,in_progress"
+ *       - in: query
+ *         name: priceMin
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Minimum price per seat
+ *         example: 10.00
+ *       - in: query
+ *         name: priceMax
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Maximum price per seat
+ *         example: 100.00
+ *       - in: query
+ *         name: distanceMin
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Minimum distance in kilometers
+ *         example: 10
+ *       - in: query
+ *         name: distanceMax
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Maximum distance in kilometers
+ *         example: 500
+ *       - in: query
+ *         name: dateFrom
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Start date for departure
+ *         example: "2024-01-01T00:00:00Z"
+ *       - in: query
+ *         name: dateTo
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: End date for departure
+ *         example: "2024-12-31T23:59:59Z"
+ *       - in: query
+ *         name: vehicleType
+ *         schema:
+ *           type: string
+ *         description: Vehicle type filter
+ *         example: "Sedan"
+ *       - in: query
+ *         name: vehicleBrand
+ *         schema:
+ *           type: string
+ *         description: Vehicle brand filter
+ *         example: "Toyota"
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [price, departure_time, distance, created_at]
+ *         description: Sort field
+ *         example: "created_at"
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort order
+ *         example: "desc"
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *         description: Items per page
+ *         example: 20
+ *     responses:
+ *       200:
+ *         description: Rides filtered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Rides filtered successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     rides:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Ride'
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *                     filters:
+ *                       type: object
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/filter', validateFilterParams, rideController.filterRides);
 
 module.exports = router; 

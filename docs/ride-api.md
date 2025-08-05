@@ -528,6 +528,412 @@ const getUserRides = async (status = null, page = 1) => {
 };
 ```
 
+### 7. Search Rides
+
+Search for available rides with advanced filtering options.
+
+**Endpoint:** `GET /api/rides/search`
+
+**Authentication:** Optional (required for search history)
+
+**Query Parameters:**
+- `pickupLocation` (optional): Pickup location address
+- `dropLocation` (optional): Drop location address
+- `departureDate` (optional): Departure date (YYYY-MM-DD)
+- `passengers` (optional): Number of passengers (1-10, default: 1)
+- `maxPrice` (optional): Maximum price per seat
+- `womenOnly` (optional): Filter for women-only rides (boolean)
+- `driverVerified` (optional): Filter for verified drivers only (boolean)
+- `sortBy` (optional): Sort field (price, departure_time, distance, created_at, default: departure_time)
+- `sortOrder` (optional): Sort order (asc, desc, default: asc)
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (1-100, default: 20)
+
+**Example Request:**
+```http
+GET /api/rides/search?pickupLocation=New%20York&dropLocation=Boston&passengers=2&maxPrice=50&sortBy=price&sortOrder=asc
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Rides found successfully",
+  "data": {
+    "rides": [
+      {
+        "id": "ride-uuid-123",
+        "created_by": "user-uuid-456",
+        "total_seats": 4,
+        "booked_seats": 1,
+        "price_per_seat": 25.00,
+        "distance": 350.5,
+        "estimated_time": 240,
+        "departure_datetime": "2024-01-15T10:00:00.000Z",
+        "status": "published",
+        "creator_name": "John Doe",
+        "vehicle_brand": "Toyota",
+        "vehicle_model": "Camry",
+        "available_seats": 3,
+        "locations": [
+          {
+            "id": "location-uuid-1",
+            "location_type": "pickup",
+            "address": "New York, NY",
+            "latitude": 40.7128,
+            "longitude": -74.0060
+          },
+          {
+            "id": "location-uuid-2",
+            "location_type": "drop",
+            "address": "Boston, MA",
+            "latitude": 42.3601,
+            "longitude": -71.0589
+          }
+        ]
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 1,
+      "totalPages": 1
+    },
+    "filters": {
+      "pickupLocation": "New York",
+      "dropLocation": "Boston",
+      "passengers": 2,
+      "maxPrice": 50,
+      "womenOnly": false,
+      "driverVerified": true
+    }
+  }
+}
+```
+
+### 8. Filter Rides
+
+Filter rides with specific criteria including price range, distance, dates, and vehicle information.
+
+**Endpoint:** `GET /api/rides/filter`
+
+**Authentication:** Not required
+
+**Query Parameters:**
+- `status` (optional): Comma-separated list of ride statuses
+- `priceMin` (optional): Minimum price per seat
+- `priceMax` (optional): Maximum price per seat
+- `distanceMin` (optional): Minimum distance in kilometers
+- `distanceMax` (optional): Maximum distance in kilometers
+- `dateFrom` (optional): Start date for departure (ISO8601)
+- `dateTo` (optional): End date for departure (ISO8601)
+- `vehicleType` (optional): Vehicle type filter
+- `vehicleBrand` (optional): Vehicle brand filter
+- `sortBy` (optional): Sort field (price, departure_time, distance, created_at, default: created_at)
+- `sortOrder` (optional): Sort order (asc, desc, default: desc)
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (1-100, default: 20)
+
+**Example Request:**
+```http
+GET /api/rides/filter?priceMin=20&priceMax=100&vehicleType=Sedan&sortBy=price&sortOrder=asc
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Rides filtered successfully",
+  "data": {
+    "rides": [
+      {
+        "id": "ride-uuid-123",
+        "created_by": "user-uuid-456",
+        "total_seats": 4,
+        "booked_seats": 0,
+        "price_per_seat": 25.00,
+        "distance": 100.5,
+        "estimated_time": 120,
+        "departure_datetime": "2024-01-15T10:00:00.000Z",
+        "status": "published",
+        "creator_name": "John Doe",
+        "vehicle_brand": "Toyota",
+        "vehicle_model": "Camry",
+        "vehicle_type": "Sedan",
+        "available_seats": 4
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 1,
+      "totalPages": 1
+    },
+    "filters": {
+      "priceMin": 20,
+      "priceMax": 100,
+      "vehicleType": "Sedan",
+      "sortBy": "price",
+      "sortOrder": "asc"
+    }
+  }
+}
+```
+
+## Search Management API
+
+### 1. Get Search History
+
+Retrieve the authenticated user's search history with pagination.
+
+**Endpoint:** `GET /api/search/history`
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (1-100, default: 20)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Search history retrieved successfully",
+  "data": {
+    "history": [
+      {
+        "id": "search-uuid-123",
+        "pickupLocation": "New York, NY",
+        "dropLocation": "Boston, MA",
+        "searchDate": "2024-01-10T15:30:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 1
+    }
+  }
+}
+```
+
+### 2. Save Search to History
+
+Save a search query to the user's search history.
+
+**Endpoint:** `POST /api/search/history`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "pickupLocation": "New York, NY",
+  "dropLocation": "Boston, MA"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Search saved to history successfully",
+  "data": {
+    "searchId": "search-uuid-123"
+  }
+}
+```
+
+### 3. Delete Search History Item
+
+Delete a specific search history item for the authenticated user.
+
+**Endpoint:** `DELETE /api/search/history/:id`
+
+**Authentication:** Required
+
+**Parameters:**
+- `id` (path): Search history item ID (UUID)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Search history item deleted successfully"
+}
+```
+
+### 4. Get Search Suggestions
+
+Get location or popular search suggestions based on the query.
+
+**Endpoint:** `GET /api/search/suggestions`
+
+**Authentication:** Not required
+
+**Query Parameters:**
+- `query` (required): Search query string (2-200 characters)
+- `type` (optional): Type of suggestions (location, popular, default: location)
+
+**Example Request:**
+```http
+GET /api/search/suggestions?query=New York&type=location
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Search suggestions retrieved successfully",
+  "data": {
+    "suggestions": [
+      {
+        "description": "New York, NY, USA",
+        "placeId": "ChIJOwg_06VPwokRYv534QaPC8g"
+      },
+      {
+        "description": "New York City Hall, New York, NY",
+        "placeId": "ChIJKxjxuxlZwokRwA3JqJ8qQqE"
+      }
+    ],
+    "query": "New York",
+    "type": "location"
+  }
+}
+```
+
+**Popular Search Suggestions:**
+```json
+{
+  "success": true,
+  "message": "Search suggestions retrieved successfully",
+  "data": {
+    "suggestions": [
+      {
+        "description": "New York → Boston",
+        "pickupLocation": "New York",
+        "dropLocation": "Boston",
+        "searchCount": 15
+      },
+      {
+        "description": "New York → Philadelphia",
+        "pickupLocation": "New York",
+        "dropLocation": "Philadelphia",
+        "searchCount": 8
+      }
+    ],
+    "query": "New York",
+    "type": "popular"
+  }
+}
+```
+
+## Usage Examples
+
+### Frontend Integration
+
+**Searching for Rides:**
+```javascript
+const searchRides = async (searchParams) => {
+  const params = new URLSearchParams();
+  Object.keys(searchParams).forEach(key => {
+    if (searchParams[key] !== undefined && searchParams[key] !== null) {
+      params.append(key, searchParams[key]);
+    }
+  });
+  
+  const response = await fetch(`/api/rides/search?${params}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  return await response.json();
+};
+
+// Example usage
+const searchResults = await searchRides({
+  pickupLocation: 'New York',
+  dropLocation: 'Boston',
+  passengers: 2,
+  maxPrice: 50,
+  sortBy: 'price',
+  sortOrder: 'asc'
+});
+```
+
+**Filtering Rides:**
+```javascript
+const filterRides = async (filterParams) => {
+  const params = new URLSearchParams();
+  Object.keys(filterParams).forEach(key => {
+    if (filterParams[key] !== undefined && filterParams[key] !== null) {
+      params.append(key, filterParams[key]);
+    }
+  });
+  
+  const response = await fetch(`/api/rides/filter?${params}`);
+  return await response.json();
+};
+
+// Example usage
+const filterResults = await filterRides({
+  priceMin: 20,
+  priceMax: 100,
+  vehicleType: 'Sedan',
+  sortBy: 'price',
+  sortOrder: 'asc'
+});
+```
+
+**Managing Search History:**
+```javascript
+const getSearchHistory = async (page = 1) => {
+  const response = await fetch(`/api/search/history?page=${page}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  return await response.json();
+};
+
+const saveSearchHistory = async (pickupLocation, dropLocation) => {
+  const response = await fetch('/api/search/history', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ pickupLocation, dropLocation })
+  });
+  
+  return await response.json();
+};
+
+const deleteSearchHistory = async (searchId) => {
+  const response = await fetch(`/api/search/history/${searchId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  return await response.json();
+};
+```
+
+**Getting Search Suggestions:**
+```javascript
+const getSearchSuggestions = async (query, type = 'location') => {
+  const response = await fetch(`/api/search/suggestions?query=${encodeURIComponent(query)}&type=${type}`);
+  return await response.json();
+};
+
+// Example usage
+const suggestions = await getSearchSuggestions('New York', 'location');
+```
+
 ## Best Practices
 
 1. **Validation**: Always validate input data before sending to the API
@@ -537,12 +943,16 @@ const getUserRides = async (status = null, page = 1) => {
 5. **Caching**: Cache ride data when appropriate to reduce API calls
 6. **Status Management**: Use appropriate ride statuses for different stages
 7. **Location Validation**: Validate coordinates before sending to API
+8. **Search Optimization**: Use appropriate filters to reduce result sets
+9. **Pagination**: Implement pagination for large result sets
+10. **Search History**: Save relevant searches to improve user experience
 
 ## Dependencies
 
 - JWT Authentication
 - Vehicle Management System
 - Location Services
+- Google Places API (for search suggestions)
 - Database (MySQL)
 
 ## Configuration
@@ -550,4 +960,5 @@ const getUserRides = async (status = null, page = 1) => {
 The following environment variables are required:
 - `JWT_SECRET`: Secret key for JWT token generation
 - `DATABASE_URL`: MySQL database connection string
-- `GOOGLE_MAPS_API_KEY`: Google Maps API key for location services 
+- `GOOGLE_MAPS_API_KEY`: Google Maps API key for location services
+- `GOOGLE_PLACES_API_KEY`: Google Places API key for search suggestions 

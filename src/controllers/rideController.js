@@ -489,6 +489,355 @@ const getAvailableSeats = async (req, res) => {
   }
 };
 
+/**
+ * Search rides with advanced filtering
+ * GET /api/rides/search
+ */
+const searchRides = async (req, res) => {
+  try {
+    const {
+      pickupLocation,
+      dropLocation,
+      departureDate,
+      passengers = 1,
+      maxPrice,
+      womenOnly,
+      driverVerified,
+      sortBy = 'departure_time',
+      sortOrder = 'asc',
+      page = 1,
+      limit = 20
+    } = req.query;
+
+    // Validate sort parameters
+    const validSortFields = ['price', 'departure_time', 'distance', 'created_at'];
+    const validSortOrders = ['asc', 'desc'];
+    
+    if (!validSortFields.includes(sortBy)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid sort field. Valid options: price, departure_time, distance, created_at'
+      });
+    }
+
+    if (!validSortOrders.includes(sortOrder)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid sort order. Valid options: asc, desc'
+      });
+    }
+
+    // Build search criteria
+    const searchCriteria = {
+      status: 'published', // Only search published rides
+      passengers: parseInt(passengers),
+      maxPrice: maxPrice ? parseFloat(maxPrice) : null,
+      womenOnly: womenOnly === 'true',
+      driverVerified: driverVerified === 'true',
+      departureDate: departureDate ? new Date(departureDate) : null,
+      pickupLocation,
+      dropLocation,
+      sortBy,
+      sortOrder,
+      page: parseInt(page),
+      limit: parseInt(limit)
+    };
+
+    // Perform search
+    const searchResults = await Ride.search(searchCriteria);
+
+    // Save search to history if user is authenticated
+    if (req.user && (pickupLocation || dropLocation)) {
+      try {
+        await saveSearchHistoryHelper(req.user.id, pickupLocation, dropLocation);
+      } catch (error) {
+        logger.warn('Failed to save search history:', error.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Rides found successfully',
+      data: {
+        rides: searchResults.rides,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: searchResults.total,
+          totalPages: Math.ceil(searchResults.total / parseInt(limit))
+        },
+        filters: {
+          pickupLocation,
+          dropLocation,
+          departureDate,
+          passengers: parseInt(passengers),
+          maxPrice: maxPrice ? parseFloat(maxPrice) : null,
+          womenOnly: womenOnly === 'true',
+          driverVerified: driverVerified === 'true'
+        }
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error searching rides:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Filter rides with specific criteria
+ * GET /api/rides/filter
+ */
+const filterRides = async (req, res) => {
+  try {
+    const {
+      status,
+      priceMin,
+      priceMax,
+      distanceMin,
+      distanceMax,
+      dateFrom,
+      dateTo,
+      vehicleType,
+      vehicleBrand,
+      sortBy = 'created_at',
+      sortOrder = 'desc',
+      page = 1,
+      limit = 20
+    } = req.query;
+
+    // Validate sort parameters
+    const validSortFields = ['price', 'departure_time', 'distance', 'created_at'];
+    const validSortOrders = ['asc', 'desc'];
+    
+    if (!validSortFields.includes(sortBy)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid sort field. Valid options: price, departure_time, distance, created_at'
+      });
+    }
+
+    if (!validSortOrders.includes(sortOrder)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid sort order. Valid options: asc, desc'
+      });
+    }
+
+    // Build filter criteria
+    const filterCriteria = {
+      status: status ? status.split(',') : null,
+      priceMin: priceMin ? parseFloat(priceMin) : null,
+      priceMax: priceMax ? parseFloat(priceMax) : null,
+      distanceMin: distanceMin ? parseFloat(distanceMin) : null,
+      distanceMax: distanceMax ? parseFloat(distanceMax) : null,
+      dateFrom: dateFrom ? new Date(dateFrom) : null,
+      dateTo: dateTo ? new Date(dateTo) : null,
+      vehicleType,
+      vehicleBrand,
+      sortBy,
+      sortOrder,
+      page: parseInt(page),
+      limit: parseInt(limit)
+    };
+
+    // Perform filtering
+    const filterResults = await Ride.filter(filterCriteria);
+
+    res.json({
+      success: true,
+      message: 'Rides filtered successfully',
+      data: {
+        rides: filterResults.rides,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: filterResults.total,
+          totalPages: Math.ceil(filterResults.total / parseInt(limit))
+        },
+        filters: filterCriteria
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error filtering rides:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get search history for authenticated user
+ * GET /api/search/history
+ */
+const getSearchHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 20 } = req.query;
+
+    const offset = (page - 1) * limit;
+    const history = await Ride.getSearchHistory(userId, parseInt(limit), offset);
+
+    res.json({
+      success: true,
+      message: 'Search history retrieved successfully',
+      data: {
+        history: history.searches,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: history.total
+        }
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error getting search history:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Save search to history
+ * POST /api/search/history
+ */
+const saveSearchHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { pickupLocation, dropLocation } = req.body;
+
+    if (!pickupLocation && !dropLocation) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one location (pickup or drop) is required'
+      });
+    }
+
+    const searchId = await Ride.saveSearchHistory(userId, pickupLocation, dropLocation);
+
+    res.status(201).json({
+      success: true,
+      message: 'Search saved to history successfully',
+      data: {
+        searchId
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error saving search history:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Delete search history item
+ * DELETE /api/search/history/:id
+ */
+const deleteSearchHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const deleted = await Ride.deleteSearchHistory(id, userId);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Search history item not found or not authorized'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Search history item deleted successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error deleting search history:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get search suggestions based on popular searches
+ * GET /api/search/suggestions
+ */
+const getSearchSuggestions = async (req, res) => {
+  try {
+    const { query, type = 'location' } = req.query;
+
+    if (!query || query.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query must be at least 2 characters long'
+      });
+    }
+
+    let suggestions = [];
+
+    if (type === 'location') {
+      // Get location suggestions using location service
+      try {
+        const locationSuggestions = await locationService.searchLocations(query);
+        suggestions = locationSuggestions.places || [];
+      } catch (error) {
+        logger.warn('Location service failed, using fallback suggestions:', error.message);
+        // Fallback to basic suggestions
+        suggestions = [
+          { description: `${query} - Popular destination` },
+          { description: `${query} - City center` },
+          { description: `${query} - Airport` }
+        ];
+      }
+    } else if (type === 'popular') {
+      // Get popular search combinations
+      suggestions = await Ride.getPopularSearches(query);
+    }
+
+    res.json({
+      success: true,
+      message: 'Search suggestions retrieved successfully',
+      data: {
+        suggestions,
+        query,
+        type
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error getting search suggestions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Helper function to save search history (used internally)
+const saveSearchHistoryHelper = async (userId, pickupLocation, dropLocation) => {
+  return await Ride.saveSearchHistory(userId, pickupLocation, dropLocation);
+};
+
 module.exports = {
   createRide,
   getRideById,
@@ -497,5 +846,11 @@ module.exports = {
   publishRide,
   unpublishRide,
   getMyRides,
-  getAvailableSeats
+  getAvailableSeats,
+  searchRides,
+  filterRides,
+  getSearchHistory,
+  saveSearchHistory,
+  deleteSearchHistory,
+  getSearchSuggestions
 }; 
