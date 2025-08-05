@@ -3,6 +3,7 @@ const app = require('./src/app');
 const config = require('./src/config');
 const logger = require('./src/utils/logger');
 const { testConnection } = require('./src/config/database');
+const socketService = require('./src/services/socketService');
 
 // Start server
 const startServer = async () => {
@@ -29,7 +30,11 @@ const startServer = async () => {
       console.log(`🌐 URL: http://${config.server.host}:${config.server.port}`);
       console.log(`📊 Health Check: http://${config.server.host}:${config.server.port}/health`);
       console.log(`📚 API Documentation: http://${config.server.host}:${config.server.port}/api/docs`);
+      console.log(`🔌 WebSocket: ws://${config.server.host}:${config.server.port}`);
     });
+
+    // Initialize WebSocket server
+    socketService.initialize(server);
 
     // Graceful shutdown
     const gracefulShutdown = (signal) => {
