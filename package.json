@@ -65,7 +65,7 @@
     "connect-redis": "^7.1.0",
     "express-fileupload": "^1.4.0",
     "google-auth-library": "^8.9.0",
-    "google-maps-services": "^3.3.40"
+    "@googlemaps/google-maps-services-js": "^3.3.40"
   },
   "devDependencies": {
     "nodemon": "^3.0.1",
