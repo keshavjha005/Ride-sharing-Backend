@@ -1,8 +1,11 @@
-const User = require('../models/User');
+// const User = require('../models/User'); // Temporarily disabled for testing
 const { hashPassword, comparePassword, validatePasswordStrength } = require('../utils/password');
 const { generateTokenPair, verifyRefreshToken } = require('../utils/jwt');
 const { ValidationError, AuthenticationError, ConflictError } = require('../middleware/errorHandler');
 const logger = require('../utils/logger');
+
+// In-memory user storage for testing (replace with database later)
+const users = [];
 
 // Register new user
 const register = async (req, res, next) => {
@@ -40,7 +43,7 @@ const register = async (req, res, next) => {
 
     // Check if email already exists
     if (email) {
-      const emailExists = await User.emailExists(email);
+      const emailExists = users.find(u => u.email === email);
       if (emailExists) {
         throw new ConflictError('Email already registered');
       }
@@ -48,7 +51,7 @@ const register = async (req, res, next) => {
 
     // Check if phone already exists
     if (phone) {
-      const phoneExists = await User.phoneExists(phone);
+      const phoneExists = users.find(u => u.phone === phone);
       if (phoneExists) {
         throw new ConflictError('Phone number already registered');
       }
@@ -58,7 +61,8 @@ const register = async (req, res, next) => {
     const passwordHash = await hashPassword(password);
 
     // Create user
-    const userData = {
+    const user = {
+      id: Date.now().toString(), // Simple ID generation
       email,
       phone,
       password_hash: passwordHash,
@@ -68,9 +72,13 @@ const register = async (req, res, next) => {
       gender,
       language_code,
       currency_code,
+      is_active: true,
+      is_verified: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
-    const user = await User.create(userData);
+    users.push(user);
 
     // Generate tokens
     const tokens = generateTokenPair({
@@ -119,9 +127,9 @@ const login = async (req, res, next) => {
     // Find user by email or phone
     let user;
     if (email) {
-      user = await User.findByEmail(email);
+      user = users.find(u => u.email === email);
     } else {
-      user = await User.findByPhone(phone);
+      user = users.find(u => u.phone === phone);
     }
 
     if (!user) {
@@ -140,7 +148,7 @@ const login = async (req, res, next) => {
     }
 
     // Update last login
-    await User.updateLastLogin(user.id);
+    user.last_login_at = new Date().toISOString();
 
     // Generate tokens
     const tokens = generateTokenPair({
@@ -185,7 +193,7 @@ const refreshToken = async (req, res, next) => {
     const decoded = verifyRefreshToken(refreshToken);
 
     // Find user
-    const user = await User.findById(decoded.id);
+    const user = users.find(u => u.id === decoded.id);
     if (!user || !user.is_active) {
       throw new AuthenticationError('Invalid refresh token');
     }
@@ -234,7 +242,7 @@ const logout = async (req, res, next) => {
 // Get current user profile
 const getProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = users.find(u => u.id === req.user.id);
     if (!user) {
       throw new AuthenticationError('User not found');
     }
@@ -281,7 +289,15 @@ const updateProfile = async (req, res, next) => {
       }
     });
 
-    const user = await User.update(req.user.id, updateData);
+    const userIndex = users.findIndex(u => u.id === req.user.id);
+    if (userIndex === -1) {
+      throw new AuthenticationError('User not found');
+    }
+
+    // Update user data
+    Object.assign(users[userIndex], updateData);
+    users[userIndex].updated_at = new Date().toISOString();
+    const user = users[userIndex];
 
     // Remove sensitive data
     const { password_hash, ...userResponse } = user;
@@ -316,10 +332,11 @@ const changePassword = async (req, res, next) => {
     }
 
     // Get current user
-    const user = await User.findById(req.user.id);
-    if (!user) {
+    const userIndex = users.findIndex(u => u.id === req.user.id);
+    if (userIndex === -1) {
       throw new AuthenticationError('User not found');
     }
+    const user = users[userIndex];
 
     // Verify current password
     const isCurrentPasswordValid = await comparePassword(currentPassword, user.password_hash);
@@ -331,7 +348,8 @@ const changePassword = async (req, res, next) => {
     const newPasswordHash = await hashPassword(newPassword);
 
     // Update password
-    await User.updatePassword(req.user.id, newPasswordHash);
+    users[userIndex].password_hash = newPasswordHash;
+    users[userIndex].updated_at = new Date().toISOString();
 
     logger.auth('password_changed', req.user.id);
 
