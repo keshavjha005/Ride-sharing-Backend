@@ -9,6 +9,7 @@ const createChatTables = require('./migrations/create_chat_tables');
 const createNotificationTables = require('./migrations/create_notification_tables');
 const createRideStatusTrackingTables = require('./migrations/create_ride_status_tracking_tables');
 const createInboxTables = require('./migrations/create_inbox_tables');
+const createEmailSMSTemplates = require('./migrations/create_email_sms_templates');
 
 // Migration registry
 const migrations = [
@@ -46,6 +47,11 @@ const migrations = [
     name: 'create_inbox_tables',
     migration: createInboxTables,
     description: 'Create inbox management system tables'
+  },
+  {
+    name: 'create_email_sms_templates',
+    migration: createEmailSMSTemplates,
+    description: 'Create email and SMS template tables'
   }
 ];
 

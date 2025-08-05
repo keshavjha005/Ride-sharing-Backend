@@ -937,4 +937,324 @@ router.get('/notifications/statistics', authenticate, NotificationController.get
  */
 router.get('/notifications/delivery-statistics', authenticate, NotificationController.getDeliveryStatistics);
 
+/**
+ * @swagger
+ * /api/notifications/send-email:
+ *   post:
+ *     summary: Send email notification
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - to
+ *               - template_key
+ *             properties:
+ *               to:
+ *                 type: string
+ *                 format: email
+ *                 description: Recipient email address
+ *               template_key:
+ *                 type: string
+ *                 description: Email template key
+ *               variables:
+ *                 type: object
+ *                 description: Template variables
+ *               options:
+ *                 type: object
+ *                 description: Email options
+ *     responses:
+ *       200:
+ *         description: Email sent successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/notifications/send-email', authenticate, NotificationController.sendEmailNotification);
+
+/**
+ * @swagger
+ * /api/notifications/send-sms:
+ *   post:
+ *     summary: Send SMS notification
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - to
+ *               - template_key
+ *             properties:
+ *               to:
+ *                 type: string
+ *                 description: Recipient phone number
+ *               template_key:
+ *                 type: string
+ *                 description: SMS template key
+ *               variables:
+ *                 type: object
+ *                 description: Template variables
+ *               options:
+ *                 type: object
+ *                 description: SMS options
+ *     responses:
+ *       200:
+ *         description: SMS sent successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/notifications/send-sms', authenticate, NotificationController.sendSMSNotification);
+
+/**
+ * @swagger
+ * /api/notifications/send-push:
+ *   post:
+ *     summary: Send push notification
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - template_key
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: FCM token
+ *               template_key:
+ *                 type: string
+ *                 description: Push notification template key
+ *               variables:
+ *                 type: object
+ *                 description: Template variables
+ *               data:
+ *                 type: object
+ *                 description: Additional notification data
+ *               options:
+ *                 type: object
+ *                 description: Push notification options
+ *     responses:
+ *       200:
+ *         description: Push notification sent successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/notifications/send-push', authenticate, NotificationController.sendPushNotification);
+
+/**
+ * @swagger
+ * /api/notifications/send-in-app:
+ *   post:
+ *     summary: Send in-app notification
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - user_id
+ *               - notification
+ *             properties:
+ *               user_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Target user ID
+ *               notification:
+ *                 type: object
+ *                 description: Notification data
+ *     responses:
+ *       200:
+ *         description: In-app notification sent successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/notifications/send-in-app', authenticate, NotificationController.sendInAppNotification);
+
+/**
+ * @swagger
+ * /api/notifications/send-with-retry:
+ *   post:
+ *     summary: Send notification with retry logic
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - notificationData
+ *             properties:
+ *               notificationData:
+ *                 type: object
+ *                 required:
+ *                   - type
+ *                 properties:
+ *                   type:
+ *                     type: string
+ *                     enum: [email, sms, push, in_app]
+ *                     description: Notification type
+ *               options:
+ *                 type: object
+ *                 description: Retry options
+ *     responses:
+ *       200:
+ *         description: Notification queued with retry
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/notifications/send-with-retry', authenticate, NotificationController.sendNotificationWithRetry);
+
+/**
+ * @swagger
+ * /api/notifications/schedule:
+ *   post:
+ *     summary: Schedule notification
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - notificationData
+ *               - scheduleTime
+ *             properties:
+ *               notificationData:
+ *                 type: object
+ *                 description: Notification data
+ *               scheduleTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Schedule time
+ *               options:
+ *                 type: object
+ *                 description: Schedule options
+ *     responses:
+ *       200:
+ *         description: Notification scheduled successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/notifications/schedule', authenticate, NotificationController.scheduleNotification);
+
+/**
+ * @swagger
+ * /api/notifications/queue-statistics:
+ *   get:
+ *     summary: Get queue statistics
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Queue statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     email:
+ *                       type: object
+ *                     sms:
+ *                       type: object
+ *                     push:
+ *                       type: object
+ *                     inApp:
+ *                       type: object
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/notifications/queue-statistics', authenticate, NotificationController.getQueueStatistics);
+
+/**
+ * @swagger
+ * /api/notifications/test-delivery:
+ *   post:
+ *     summary: Test delivery services
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Delivery services test results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     email:
+ *                       type: object
+ *                     sms:
+ *                       type: object
+ *                     push:
+ *                       type: object
+ *                     queue:
+ *                       type: object
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/notifications/test-delivery', authenticate, NotificationController.testDeliveryServices);
+
 module.exports = router; 

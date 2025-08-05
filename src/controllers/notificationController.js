@@ -5,6 +5,12 @@ const FCMToken = require('../models/FCMToken');
 const NotificationLog = require('../models/NotificationLog');
 const logger = require('../utils/logger');
 
+// Import delivery services
+const emailService = require('../services/emailService');
+const smsService = require('../services/smsService');
+const pushNotificationService = require('../services/pushNotificationService');
+const notificationQueueService = require('../services/notificationQueueService');
+
 class NotificationController {
   /**
    * Get all notification templates
@@ -696,6 +702,252 @@ class NotificationController {
       res.status(500).json({
         success: false,
         message: 'Failed to get delivery statistics',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Send email notification
+   */
+  static async sendEmailNotification(req, res) {
+    try {
+      const { to, template_key, variables, options } = req.body;
+      
+      if (!to || !template_key) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email address and template key are required'
+        });
+      }
+
+      const result = await emailService.sendTemplateEmail(to, template_key, variables || {}, options || {});
+      
+      res.json({
+        success: true,
+        message: 'Email notification sent successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error sending email notification:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send email notification',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Send SMS notification
+   */
+  static async sendSMSNotification(req, res) {
+    try {
+      const { to, template_key, variables, options } = req.body;
+      
+      if (!to || !template_key) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number and template key are required'
+        });
+      }
+
+      const result = await smsService.sendTemplateSMS(to, template_key, variables || {}, options || {});
+      
+      res.json({
+        success: true,
+        message: 'SMS notification sent successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error sending SMS notification:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send SMS notification',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Send push notification
+   */
+  static async sendPushNotification(req, res) {
+    try {
+      const { token, template_key, variables, data, options } = req.body;
+      
+      if (!token || !template_key) {
+        return res.status(400).json({
+          success: false,
+          message: 'FCM token and template key are required'
+        });
+      }
+
+      const result = await pushNotificationService.sendTemplateNotification(token, template_key, variables || {}, {
+        ...options,
+        data: data || {}
+      });
+      
+      res.json({
+        success: true,
+        message: 'Push notification sent successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error sending push notification:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send push notification',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Send in-app notification
+   */
+  static async sendInAppNotification(req, res) {
+    try {
+      const { user_id, notification } = req.body;
+      
+      if (!user_id || !notification) {
+        return res.status(400).json({
+          success: false,
+          message: 'User ID and notification data are required'
+        });
+      }
+
+      const socketService = require('../services/socketService');
+      const result = await socketService.sendInAppNotification(user_id, notification);
+      
+      res.json({
+        success: true,
+        message: 'In-app notification sent successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error sending in-app notification:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send in-app notification',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Send notification with retry logic
+   */
+  static async sendNotificationWithRetry(req, res) {
+    try {
+      const { notificationData, options } = req.body;
+      
+      if (!notificationData || !notificationData.type) {
+        return res.status(400).json({
+          success: false,
+          message: 'Notification data with type is required'
+        });
+      }
+
+      const result = await notificationQueueService.sendNotificationWithRetry(notificationData, options || {});
+      
+      res.json({
+        success: true,
+        message: 'Notification queued for delivery with retry',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error sending notification with retry:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send notification with retry',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Schedule notification
+   */
+  static async scheduleNotification(req, res) {
+    try {
+      const { notificationData, scheduleTime, options } = req.body;
+      
+      if (!notificationData || !scheduleTime) {
+        return res.status(400).json({
+          success: false,
+          message: 'Notification data and schedule time are required'
+        });
+      }
+
+      const scheduleDate = new Date(scheduleTime);
+      if (isNaN(scheduleDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid schedule time format'
+        });
+      }
+
+      const result = await notificationQueueService.scheduleNotification(notificationData, scheduleDate, options || {});
+      
+      res.json({
+        success: true,
+        message: 'Notification scheduled successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error scheduling notification:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to schedule notification',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Get queue statistics
+   */
+  static async getQueueStatistics(req, res) {
+    try {
+      const stats = await notificationQueueService.getQueueStatistics();
+      
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      logger.error('Error getting queue statistics:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get queue statistics',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Test delivery services
+   */
+  static async testDeliveryServices(req, res) {
+    try {
+      const results = {
+        email: await emailService.testConnection(),
+        sms: await smsService.testConnection(),
+        push: await pushNotificationService.testConnection(),
+        queue: await notificationQueueService.testService()
+      };
+      
+      res.json({
+        success: true,
+        message: 'Delivery services test completed',
+        data: results
+      });
+    } catch (error) {
+      logger.error('Error testing delivery services:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to test delivery services',
         error: error.message
       });
     }
