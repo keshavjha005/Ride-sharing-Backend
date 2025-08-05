@@ -25,19 +25,35 @@ class PushNotificationService {
 
       // Initialize Firebase Admin SDK
       if (process.env.FCM_SERVICE_ACCOUNT_KEY) {
-        // Use service account key file
-        const serviceAccount = require(process.env.FCM_SERVICE_ACCOUNT_KEY);
-        this.app = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount)
-        });
+        try {
+          // Use service account key file
+          const serviceAccount = require(process.env.FCM_SERVICE_ACCOUNT_KEY);
+          this.app = admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+          });
+        } catch (fileError) {
+          logger.warn('Failed to load Firebase service account key file, push notifications disabled');
+          this.app = null;
+          this.messaging = null;
+          return;
+        }
       } else if (process.env.FIREBASE_PROJECT_ID) {
-        // Use environment variables
-        this.app = admin.initializeApp({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          credential: admin.credential.applicationDefault()
-        });
+        try {
+          // Use environment variables
+          this.app = admin.initializeApp({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            credential: admin.credential.applicationDefault()
+          });
+        } catch (envError) {
+          logger.warn('Failed to initialize Firebase with environment variables, push notifications disabled');
+          this.app = null;
+          this.messaging = null;
+          return;
+        }
       } else {
         logger.warn('Firebase credentials not configured, push notifications disabled');
+        this.app = null;
+        this.messaging = null;
         return;
       }
 
@@ -46,7 +62,9 @@ class PushNotificationService {
 
     } catch (error) {
       logger.error('Failed to initialize Firebase Admin SDK:', error);
-      throw error;
+      // Don't throw error, just disable push notifications
+      this.app = null;
+      this.messaging = null;
     }
   }
 
@@ -56,7 +74,12 @@ class PushNotificationService {
   async sendToDevice(token, notification, data = {}, options = {}) {
     try {
       if (!this.messaging) {
-        throw new Error('Push notification service not configured');
+        logger.warn('Push notification service not configured, skipping notification');
+        return {
+          success: false,
+          error: 'Push notification service not configured',
+          token
+        };
       }
 
       const notificationId = uuidv4();

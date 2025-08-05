@@ -16,7 +16,7 @@ class EmailService {
     try {
       // Use SendGrid if API key is provided, otherwise use SMTP
       if (config.email.sendgridApiKey) {
-        this.transporter = nodemailer.createTransporter({
+        this.transporter = nodemailer.createTransport({
           service: 'SendGrid',
           auth: {
             user: 'apikey',
@@ -26,7 +26,7 @@ class EmailService {
         logger.info('Email service initialized with SendGrid');
       } else {
         // Fallback to SMTP (for development/testing)
-        this.transporter = nodemailer.createTransporter({
+        this.transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST || 'smtp.gmail.com',
           port: process.env.SMTP_PORT || 587,
           secure: false,

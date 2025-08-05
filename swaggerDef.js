@@ -268,6 +268,42 @@ const options = {
         name: 'Health',
         description: 'Health check and system status',
       },
+      {
+        name: 'Chat',
+        description: 'Real-time chat and messaging',
+      },
+      {
+        name: 'Notifications',
+        description: 'Push notifications and delivery',
+      },
+      {
+        name: 'Inbox',
+        description: 'Inbox management and conversations',
+      },
+      {
+        name: 'Socket',
+        description: 'WebSocket and real-time communication',
+      },
+      {
+        name: 'Search',
+        description: 'Search and filtering operations',
+      },
+      {
+        name: 'Upload',
+        description: 'File upload and management',
+      },
+      {
+        name: 'Languages',
+        description: 'Language management',
+      },
+      {
+        name: 'Currencies',
+        description: 'Currency management',
+      },
+      {
+        name: 'Localization',
+        description: 'Content localization',
+      },
     ],
   },
   apis: ['./src/routes/*.js'], // Path to the API routes
