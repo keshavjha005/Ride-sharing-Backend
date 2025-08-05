@@ -6,6 +6,8 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
 const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('../swaggerDef');
 
 // Load environment variables
 dotenv.config();
@@ -24,6 +26,7 @@ const localizationRoutes = require('./routes/localization');
 const uploadRoutes = require('./routes/upload');
 const healthRoutes = require('./routes/health');
 const vehicleRoutes = require('./routes/vehicles');
+const locationRoutes = require('./routes/location');
 
 // Create Express app
 const app = express();
@@ -92,6 +95,15 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Swagger documentation
+if (config.features.enableSwagger) {
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
+    explorer: true,
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Mate Backend API Documentation',
+  }));
+}
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -101,6 +113,7 @@ app.use('/api/localization', localizationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/location', locationRoutes);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
