@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const logger = require('../utils/logger');
 const User = require('../models/User');
+const ChatRoom = require('../models/ChatRoom');
+const ChatMessage = require('../models/ChatMessage');
 
 class SocketService {
   constructor() {
@@ -229,16 +231,23 @@ class SocketService {
   }
 
   // Handle joining a room
-  handleJoinRoom(socket, data) {
-    const { roomId, roomType = 'chat' } = data;
-    const { userId } = socket;
-
-    if (!roomId) {
-      socket.emit('error', { message: 'Room ID is required' });
-      return;
-    }
-
+  async handleJoinRoom(socket, data) {
     try {
+      const { roomId, roomType = 'chat' } = data;
+      const userId = socket.userId;
+
+      if (!roomId) {
+        return socket.emit('error', { message: 'Room ID is required' });
+      }
+
+      // Check if user is participant of the chat room
+      const isParticipant = await ChatRoom.isParticipant(roomId, userId);
+      if (!isParticipant) {
+        return socket.emit('error', {
+          message: 'You are not a participant of this chat room'
+        });
+      }
+
       // Join the room
       socket.join(roomId);
       
@@ -268,12 +277,14 @@ class SocketService {
         user: {
           id: socket.user.id,
           first_name: socket.user.first_name,
-          last_name: socket.user.last_name
+          last_name: socket.user.last_name,
+          email: socket.user.email,
+          profile_image_url: socket.user.profile_image_url
         },
         timestamp: new Date().toISOString()
       });
 
-      logger.info('User joined room', {
+      logger.info('User joined chat room', {
         userId: userId,
         roomId: roomId,
         roomType: roomType,
@@ -281,10 +292,10 @@ class SocketService {
       });
 
     } catch (error) {
-      logger.error('Failed to join room', {
+      logger.error('Failed to join chat room', {
         error: error.message,
-        userId: userId,
-        roomId: roomId
+        userId: socket.userId,
+        roomId: data.roomId
       });
       socket.emit('error', { message: 'Failed to join room' });
     }
@@ -351,47 +362,109 @@ class SocketService {
   }
 
   // Handle sending a message
-  handleSendMessage(socket, data) {
-    const { roomId, message, messageType = 'text' } = data;
-    const { userId } = socket;
-
-    if (!roomId || !message) {
-      socket.emit('error', { message: 'Room ID and message are required' });
-      return;
-    }
-
+  async handleSendMessage(socket, data) {
     try {
+      const { roomId, messageText, messageAr, messageEn, messageType = 'text', mediaUrl, mediaType, fileSize, locationData } = data;
+      const userId = socket.userId;
+
+      if (!roomId) {
+        return socket.emit('error', {
+          message: 'Room ID is required'
+        });
+      }
+
+      // Check if user is participant of the chat room
+      const isParticipant = await ChatRoom.isParticipant(roomId, userId);
+      if (!isParticipant) {
+        return socket.emit('error', {
+          message: 'You are not a participant of this chat room'
+        });
+      }
+
+      // Validate message content based on type
+      if (messageType === 'text' && !messageText && !messageAr && !messageEn) {
+        return socket.emit('error', {
+          message: 'Text message content is required'
+        });
+      }
+
+      if (messageType === 'image' && !mediaUrl) {
+        return socket.emit('error', {
+          message: 'Media URL is required for image messages'
+        });
+      }
+
+      if (messageType === 'file' && (!mediaUrl || !mediaType)) {
+        return socket.emit('error', {
+          message: 'Media URL and type are required for file messages'
+        });
+      }
+
+      if (messageType === 'location' && !locationData) {
+        return socket.emit('error', {
+          message: 'Location data is required for location messages'
+        });
+      }
+
+      // Create message in database
       const messageData = {
-        id: require('uuid').v4(),
-        roomId: roomId,
+        roomId,
         senderId: userId,
+        messageType,
+        messageText,
+        messageAr,
+        messageEn,
+        mediaUrl,
+        mediaType,
+        fileSize,
+        locationData
+      };
+
+      const message = await ChatMessage.create(messageData);
+
+      // Get room participants
+      const participants = await ChatRoom.getParticipants(roomId);
+
+      // Broadcast message to all participants
+      participants.forEach(participant => {
+        if (participant.user_id !== userId) {
+          this.sendToUser(participant.user_id, 'chat:message_received', {
+            ...message,
+            sender: {
+              id: socket.user.id,
+              first_name: socket.user.first_name,
+              last_name: socket.user.last_name,
+              email: socket.user.email,
+              profile_image_url: socket.user.profile_image_url
+            }
+          });
+        }
+      });
+
+      // Send confirmation to sender
+      socket.emit('chat:message_sent', {
+        ...message,
         sender: {
           id: socket.user.id,
           first_name: socket.user.first_name,
-          last_name: socket.user.last_name
-        },
-        message: message,
-        messageType: messageType,
-        timestamp: new Date().toISOString()
-      };
+          last_name: socket.user.last_name,
+          email: socket.user.email,
+          profile_image_url: socket.user.profile_image_url
+        }
+      });
 
-      // Broadcast message to room
-      this.io.to(roomId).emit('chat:message', messageData);
-
-      logger.info('Message sent', {
-        userId: userId,
-        roomId: roomId,
-        messageType: messageType,
-        messageLength: message.length
+      logger.info('Chat message sent', {
+        roomId,
+        senderId: userId,
+        messageType,
+        messageId: message.id
       });
 
     } catch (error) {
-      logger.error('Failed to send message', {
-        error: error.message,
-        userId: userId,
-        roomId: roomId
+      logger.error('Error handling send message', error);
+      socket.emit('error', {
+        message: 'Failed to send message'
       });
-      socket.emit('error', { message: 'Failed to send message' });
     }
   }
 

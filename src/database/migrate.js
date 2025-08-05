@@ -5,6 +5,7 @@ const logger = require('../utils/logger');
 const createVehicleTables = require('./migrations/create_vehicle_tables');
 const createRideTables = require('./migrations/create_ride_tables');
 const createSearchHistoryTable = require('./migrations/create_search_history_table');
+const createChatTables = require('./migrations/create_chat_tables');
 
 // Migration registry
 const migrations = [
@@ -22,6 +23,11 @@ const migrations = [
     name: 'create_search_history_table',
     migration: createSearchHistoryTable,
     description: 'Create search history table'
+  },
+  {
+    name: 'create_chat_tables',
+    migration: createChatTables,
+    description: 'Create chat system tables'
   }
 ];
 

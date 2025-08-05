@@ -1,4 +1,4 @@
-const db = require('../../config/database');
+const { executeQuery } = require('../../config/database');
 const logger = require('../../utils/logger');
 
 /**
@@ -24,7 +24,7 @@ async function up() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `;
 
-    await db.execute(query);
+    await executeQuery(query);
     
     logger.info('user_search_history table created successfully');
   } catch (error) {
@@ -41,7 +41,7 @@ async function down() {
     logger.info('Dropping user_search_history table...');
 
     const query = 'DROP TABLE IF EXISTS user_search_history';
-    await db.execute(query);
+    await executeQuery(query);
     
     logger.info('user_search_history table dropped successfully');
   } catch (error) {
