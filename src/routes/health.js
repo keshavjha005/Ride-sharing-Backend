@@ -26,8 +26,17 @@ router.get('/', asyncHandler(async (req, res) => {
 router.get('/detailed', asyncHandler(async (req, res) => {
   const startTime = Date.now();
   
-  // Check database health
-  const dbHealth = await dbHealthCheck();
+  // Check database health (optional)
+  let dbHealth;
+  try {
+    dbHealth = await dbHealthCheck();
+  } catch (error) {
+    dbHealth = { 
+      status: 'unhealthy', 
+      error: error.message, 
+      timestamp: new Date().toISOString() 
+    };
+  }
   
   const health = {
     status: dbHealth.status === 'healthy' ? 'OK' : 'DEGRADED',
@@ -53,7 +62,12 @@ router.get('/detailed', asyncHandler(async (req, res) => {
 
 // Readiness check (for Kubernetes)
 router.get('/ready', asyncHandler(async (req, res) => {
-  const dbHealth = await dbHealthCheck();
+  let dbHealth;
+  try {
+    dbHealth = await dbHealthCheck();
+  } catch (error) {
+    dbHealth = { status: 'unhealthy', error: error.message };
+  }
   
   if (dbHealth.status === 'healthy') {
     res.status(200).json({

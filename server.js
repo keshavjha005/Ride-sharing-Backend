@@ -6,8 +6,19 @@ const { testConnection } = require('./src/config/database');
 // Start server
 const startServer = async () => {
   try {
-    // Test database connection
-    await testConnection();
+    // Test database connection (optional in development)
+    if (config.server.environment === 'production') {
+      await testConnection();
+    } else {
+      try {
+        await testConnection();
+        logger.startup('Database connection established successfully');
+      } catch (error) {
+        logger.warn('Database connection failed, continuing without database', {
+          error: error.message,
+        });
+      }
+    }
     
     // Start HTTP server
     const server = app.listen(config.server.port, config.server.host, () => {

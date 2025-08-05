@@ -12,8 +12,7 @@ dotenv.config();
 // Import configurations
 const config = require('./config');
 const logger = require('./utils/logger');
-const errorHandler = require('./middleware/errorHandler');
-const notFoundHandler = require('./middleware/notFoundHandler');
+const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 // Import routes
 const authRoutes = require('./routes/auth');
