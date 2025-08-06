@@ -11,6 +11,7 @@ const createRideStatusTrackingTables = require('./migrations/create_ride_status_
 const createInboxTables = require('./migrations/create_inbox_tables');
 const createEmailSMSTemplates = require('./migrations/create_email_sms_templates');
 const createPricingTables = require('./migrations/create_pricing_tables');
+const createPricingEventsTables = require('./migrations/create_pricing_events_tables');
 
 // Migration registry
 const migrations = [
@@ -58,6 +59,11 @@ const migrations = [
     name: 'create_pricing_tables',
     migration: createPricingTables,
     description: 'Create per-kilometer pricing system tables'
+  },
+  {
+    name: 'create_pricing_events_tables',
+    migration: createPricingEventsTables,
+    description: 'Create dynamic event pricing system tables'
   }
 ];
 

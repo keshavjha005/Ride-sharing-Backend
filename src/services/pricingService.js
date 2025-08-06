@@ -1,6 +1,8 @@
 const VehicleType = require('../models/VehicleType');
 const PricingMultiplier = require('../models/PricingMultiplier');
 const PricingCalculation = require('../models/PricingCalculation');
+const PricingEvent = require('../models/PricingEvent');
+const PricingEventApplication = require('../models/PricingEventApplication');
 const logger = require('../utils/logger');
 
 class PricingService {
@@ -77,6 +79,17 @@ class PricingService {
         finalFare = vehicleType.maximum_fare;
       }
 
+      // Apply event-based pricing
+      const eventPricingResult = await this.applyEventPricing(
+        finalFare, 
+        departureTime, 
+        pickupLocation, 
+        vehicleType.name,
+        tripId
+      );
+
+      finalFare = eventPricingResult.finalFare;
+
       // Round to 2 decimal places
       finalFare = Math.round(finalFare * 100) / 100;
 
@@ -94,6 +107,7 @@ class PricingService {
           maximum_applied: vehicleType.maximum_fare ? finalFare === vehicleType.maximum_fare : false
         },
         multipliers: appliedMultipliers,
+        event_pricing: eventPricingResult.eventDetails,
         trip_details: {
           departure_time: departureTime,
           pickup_location: pickupLocation,
@@ -129,6 +143,7 @@ class PricingService {
             maximum_fare: vehicleType.maximum_fare
           },
           applied_multipliers: appliedMultipliers,
+          event_pricing: eventPricingResult.eventDetails,
           calculation_details: calculationDetails
         }
       };
@@ -331,6 +346,265 @@ class PricingService {
 
     } catch (error) {
       logger.error('Error getting pricing history:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Apply event-based pricing to fare
+   * @param {number} baseFare - Base fare before event pricing
+   * @param {Date} departureTime - Trip departure time
+   * @param {Object} location - Trip location
+   * @param {string} vehicleTypeName - Vehicle type name
+   * @param {string} tripId - Trip ID for tracking
+   * @returns {Promise<Object>} - Event pricing result
+   */
+  static async applyEventPricing(baseFare, departureTime, location, vehicleTypeName, tripId = null) {
+    try {
+      const activeEvents = await PricingEvent.findActiveEvents(
+        departureTime, 
+        location, 
+        vehicleTypeName
+      );
+
+      let finalFare = baseFare;
+      const appliedEvents = [];
+      const eventApplications = [];
+
+      for (const event of activeEvents) {
+        if (event.appliesToVehicleType(vehicleTypeName) && event.appliesToLocation(location)) {
+          const originalFare = finalFare;
+          finalFare *= event.pricing_multiplier;
+          
+          appliedEvents.push({
+            id: event.id,
+            event_name: event.event_name,
+            event_type: event.event_type,
+            pricing_multiplier: event.pricing_multiplier,
+            original_fare: originalFare,
+            adjusted_fare: finalFare,
+            fare_increase: finalFare - originalFare
+          });
+
+          // Track event application if trip ID is provided
+          if (tripId) {
+            try {
+              await PricingEventApplication.create({
+                trip_id: tripId,
+                pricing_event_id: event.id,
+                original_fare: originalFare,
+                adjusted_fare: finalFare,
+                multiplier_applied: event.pricing_multiplier
+              });
+            } catch (error) {
+              logger.error('Error tracking event application:', error);
+              // Don't fail the pricing calculation if tracking fails
+            }
+          }
+        }
+      }
+
+      return {
+        finalFare: Math.round(finalFare * 100) / 100,
+        eventDetails: {
+          applied_events: appliedEvents,
+          total_events_applied: appliedEvents.length,
+          total_fare_increase: finalFare - baseFare
+        }
+      };
+
+    } catch (error) {
+      logger.error('Error applying event pricing:', error);
+      // Return original fare if event pricing fails
+      return {
+        finalFare: baseFare,
+        eventDetails: {
+          applied_events: [],
+          total_events_applied: 0,
+          total_fare_increase: 0,
+          error: error.message
+        }
+      };
+    }
+  }
+
+  /**
+   * Get all pricing events with optional filtering
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} - Pricing events
+   */
+  static async getPricingEvents(options = {}) {
+    try {
+      const events = await PricingEvent.findAll(options);
+
+      return {
+        success: true,
+        data: events.map(event => event.toJSON()),
+        pagination: {
+          total: events.length,
+          limit: options.limit || 50,
+          offset: options.offset || 0
+        }
+      };
+
+    } catch (error) {
+      logger.error('Error getting pricing events:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get pricing event by ID
+   * @param {string} eventId - Event ID
+   * @returns {Promise<Object>} - Pricing event
+   */
+  static async getPricingEvent(eventId) {
+    try {
+      const event = await PricingEvent.findById(eventId);
+      if (!event) {
+        throw new Error('Pricing event not found');
+      }
+
+      return {
+        success: true,
+        data: event.toJSON()
+      };
+
+    } catch (error) {
+      logger.error('Error getting pricing event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create new pricing event
+   * @param {Object} eventData - Event data
+   * @returns {Promise<Object>} - Created event
+   */
+  static async createPricingEvent(eventData) {
+    try {
+      const event = await PricingEvent.create(eventData);
+
+      return {
+        success: true,
+        data: event.toJSON()
+      };
+
+    } catch (error) {
+      logger.error('Error creating pricing event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update pricing event
+   * @param {string} eventId - Event ID
+   * @param {Object} updates - Update data
+   * @returns {Promise<Object>} - Updated event
+   */
+  static async updatePricingEvent(eventId, updates) {
+    try {
+      const event = await PricingEvent.update(eventId, updates);
+
+      return {
+        success: true,
+        data: event.toJSON()
+      };
+
+    } catch (error) {
+      logger.error('Error updating pricing event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete pricing event
+   * @param {string} eventId - Event ID
+   * @returns {Promise<Object>} - Deletion result
+   */
+  static async deletePricingEvent(eventId) {
+    try {
+      const deleted = await PricingEvent.delete(eventId);
+
+      return {
+        success: true,
+        data: { deleted }
+      };
+
+    } catch (error) {
+      logger.error('Error deleting pricing event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get active pricing events
+   * @param {Date} date - Date to check
+   * @param {Object} location - Location details
+   * @param {string} vehicleTypeName - Vehicle type name
+   * @returns {Promise<Object>} - Active events
+   */
+  static async getActivePricingEvents(date = new Date(), location = null, vehicleTypeName = null) {
+    try {
+      const events = await PricingEvent.findActiveEvents(date, location, vehicleTypeName);
+
+      return {
+        success: true,
+        data: events.map(event => event.toJSON())
+      };
+
+    } catch (error) {
+      logger.error('Error getting active pricing events:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get pricing event analytics
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} - Event analytics
+   */
+  static async getPricingEventAnalytics(options = {}) {
+    try {
+      const eventStats = await PricingEvent.getStatistics(options);
+      const applicationStats = await PricingEventApplication.getStatistics(options);
+
+      return {
+        success: true,
+        data: {
+          event_statistics: eventStats,
+          application_statistics: applicationStats,
+          period_days: options.period || 30
+        }
+      };
+
+    } catch (error) {
+      logger.error('Error getting pricing event analytics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get pricing event applications
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} - Event applications
+   */
+  static async getPricingEventApplications(options = {}) {
+    try {
+      const applications = await PricingEventApplication.findWithEventDetails(options);
+
+      return {
+        success: true,
+        data: applications,
+        pagination: {
+          total: applications.length,
+          limit: options.limit || 50,
+          offset: options.offset || 0
+        }
+      };
+
+    } catch (error) {
+      logger.error('Error getting pricing event applications:', error);
       throw error;
     }
   }

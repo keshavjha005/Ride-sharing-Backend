@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, param, query } = require('express-validator');
 const pricingController = require('../controllers/pricingController');
-const auth = require('../middleware/auth');
+const { authenticate: auth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -613,5 +613,487 @@ router.get('/history', [
   query('startDate').optional().isISO8601().withMessage('Start date must be a valid ISO 8601 date'),
   query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO 8601 date')
 ], pricingController.getPricingHistory);
+
+// ==================== PRICING EVENTS ROUTES ====================
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     PricingEvent:
+ *       type: object
+ *       required:
+ *         - event_name
+ *         - event_type
+ *         - start_date
+ *         - end_date
+ *         - pricing_multiplier
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         event_name:
+ *           type: string
+ *           example: "New Year Surge"
+ *         event_type:
+ *           type: string
+ *           enum: [seasonal, holiday, special_event, demand_surge]
+ *           example: "special_event"
+ *         start_date:
+ *           type: string
+ *           format: date-time
+ *           example: "2024-12-31T18:00:00Z"
+ *         end_date:
+ *           type: string
+ *           format: date-time
+ *           example: "2025-01-01T06:00:00Z"
+ *         pricing_multiplier:
+ *           type: number
+ *           minimum: 1.0
+ *           example: 2.50
+ *         affected_vehicle_types:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["all"]
+ *         affected_areas:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["all"]
+ *         description:
+ *           type: string
+ *           example: "New Year pricing surge for all vehicle types"
+ *         is_active:
+ *           type: boolean
+ *           example: true
+ */
+
+/**
+ * @swagger
+ * /api/pricing/events:
+ *   get:
+ *     tags: [Pricing Events]
+ *     summary: Get all pricing events
+ *     description: Retrieve all pricing events with optional filtering
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: activeOnly
+ *         schema:
+ *           type: boolean
+ *           default: true
+ *         description: Return only active events
+ *       - in: query
+ *         name: eventType
+ *         schema:
+ *           type: string
+ *           enum: [seasonal, holiday, special_event, demand_surge]
+ *         description: Filter by event type
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of items to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of items to skip
+ *     responses:
+ *       200:
+ *         description: Pricing events retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PricingEvent'
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/events', [
+  auth,
+  query('activeOnly').optional().isBoolean().withMessage('activeOnly must be a boolean'),
+  query('eventType').optional().isIn(['seasonal', 'holiday', 'special_event', 'demand_surge']).withMessage('Invalid event type'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be a non-negative integer')
+], pricingController.getPricingEvents);
+
+/**
+ * @swagger
+ * /api/pricing/events/{id}:
+ *   get:
+ *     tags: [Pricing Events]
+ *     summary: Get pricing event by ID
+ *     description: Retrieve a specific pricing event by its ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Pricing event ID
+ *     responses:
+ *       200:
+ *         description: Pricing event retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/PricingEvent'
+ *       404:
+ *         description: Pricing event not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/events/:id', [
+  auth,
+  param('id').isUUID().withMessage('Pricing event ID must be a valid UUID')
+], pricingController.getPricingEvent);
+
+/**
+ * @swagger
+ * /api/pricing/events:
+ *   post:
+ *     tags: [Pricing Events]
+ *     summary: Create new pricing event
+ *     description: Create a new pricing event for dynamic pricing
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - event_name
+ *               - event_type
+ *               - start_date
+ *               - end_date
+ *               - pricing_multiplier
+ *             properties:
+ *               event_name:
+ *                 type: string
+ *                 example: "New Year Surge"
+ *               event_type:
+ *                 type: string
+ *                 enum: [seasonal, holiday, special_event, demand_surge]
+ *                 example: "special_event"
+ *               start_date:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2024-12-31T18:00:00Z"
+ *               end_date:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-01-01T06:00:00Z"
+ *               pricing_multiplier:
+ *                 type: number
+ *                 minimum: 1.0
+ *                 example: 2.50
+ *               affected_vehicle_types:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["all"]
+ *               affected_areas:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["all"]
+ *               description:
+ *                 type: string
+ *                 example: "New Year pricing surge for all vehicle types"
+ *               is_active:
+ *                 type: boolean
+ *                 default: true
+ *     responses:
+ *       201:
+ *         description: Pricing event created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/PricingEvent'
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/events', [
+  auth,
+  body('event_name').isLength({ min: 1, max: 100 }).withMessage('Event name must be between 1 and 100 characters'),
+  body('event_type').isIn(['seasonal', 'holiday', 'special_event', 'demand_surge']).withMessage('Invalid event type'),
+  body('start_date').isISO8601().withMessage('Start date must be a valid ISO 8601 date'),
+  body('end_date').isISO8601().withMessage('End date must be a valid ISO 8601 date'),
+  body('pricing_multiplier').isFloat({ min: 1.0 }).withMessage('Pricing multiplier must be at least 1.0'),
+  body('affected_vehicle_types').isArray().withMessage('Affected vehicle types must be an array'),
+  body('affected_areas').isArray().withMessage('Affected areas must be an array'),
+  body('description').optional().isLength({ max: 500 }).withMessage('Description must be less than 500 characters'),
+  body('is_active').optional().isBoolean().withMessage('is_active must be a boolean')
+], pricingController.createPricingEvent);
+
+/**
+ * @swagger
+ * /api/pricing/events/{id}:
+ *   put:
+ *     tags: [Pricing Events]
+ *     summary: Update pricing event
+ *     description: Update an existing pricing event
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Pricing event ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               event_name:
+ *                 type: string
+ *               event_type:
+ *                 type: string
+ *                 enum: [seasonal, holiday, special_event, demand_surge]
+ *               start_date:
+ *                 type: string
+ *                 format: date-time
+ *               end_date:
+ *                 type: string
+ *                 format: date-time
+ *               pricing_multiplier:
+ *                 type: number
+ *                 minimum: 1.0
+ *               affected_vehicle_types:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               affected_areas:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               description:
+ *                 type: string
+ *               is_active:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Pricing event updated successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Pricing event not found
+ *       500:
+ *         description: Internal server error
+ */
+router.put('/events/:id', [
+  auth,
+  param('id').isUUID().withMessage('Pricing event ID must be a valid UUID'),
+  body('event_name').optional().isLength({ min: 1, max: 100 }).withMessage('Event name must be between 1 and 100 characters'),
+  body('event_type').optional().isIn(['seasonal', 'holiday', 'special_event', 'demand_surge']).withMessage('Invalid event type'),
+  body('start_date').optional().isISO8601().withMessage('Start date must be a valid ISO 8601 date'),
+  body('end_date').optional().isISO8601().withMessage('End date must be a valid ISO 8601 date'),
+  body('pricing_multiplier').optional().isFloat({ min: 1.0 }).withMessage('Pricing multiplier must be at least 1.0'),
+  body('affected_vehicle_types').optional().isArray().withMessage('Affected vehicle types must be an array'),
+  body('affected_areas').optional().isArray().withMessage('Affected areas must be an array'),
+  body('description').optional().isLength({ max: 500 }).withMessage('Description must be less than 500 characters'),
+  body('is_active').optional().isBoolean().withMessage('is_active must be a boolean')
+], pricingController.updatePricingEvent);
+
+/**
+ * @swagger
+ * /api/pricing/events/{id}:
+ *   delete:
+ *     tags: [Pricing Events]
+ *     summary: Delete pricing event
+ *     description: Delete a pricing event
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Pricing event ID
+ *     responses:
+ *       200:
+ *         description: Pricing event deleted successfully
+ *       404:
+ *         description: Pricing event not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete('/events/:id', [
+  auth,
+  param('id').isUUID().withMessage('Pricing event ID must be a valid UUID')
+], pricingController.deletePricingEvent);
+
+/**
+ * @swagger
+ * /api/pricing/events/active:
+ *   get:
+ *     tags: [Pricing Events]
+ *     summary: Get active pricing events
+ *     description: Get currently active pricing events for a specific date and location
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Date to check for active events
+ *       - in: query
+ *         name: location
+ *         schema:
+ *           type: string
+ *         description: Location JSON string with latitude and longitude
+ *       - in: query
+ *         name: vehicleTypeName
+ *         schema:
+ *           type: string
+ *         description: Vehicle type name to filter events
+ *     responses:
+ *       200:
+ *         description: Active pricing events retrieved successfully
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/events/active', [
+  auth,
+  query('date').optional().isISO8601().withMessage('Date must be a valid ISO 8601 date'),
+  query('location').optional().isJSON().withMessage('Location must be a valid JSON string'),
+  query('vehicleTypeName').optional().isLength({ min: 1 }).withMessage('Vehicle type name must not be empty')
+], pricingController.getActivePricingEvents);
+
+/**
+ * @swagger
+ * /api/pricing/events/analytics:
+ *   get:
+ *     tags: [Pricing Events]
+ *     summary: Get pricing event analytics
+ *     description: Get analytics and statistics for pricing events
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *         description: Period in days for analytics
+ *       - in: query
+ *         name: eventId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by specific event ID
+ *     responses:
+ *       200:
+ *         description: Pricing event analytics retrieved successfully
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/events/analytics', [
+  auth,
+  query('period').optional().isInt({ min: 1, max: 365 }).withMessage('Period must be between 1 and 365 days'),
+  query('eventId').optional().isUUID().withMessage('Event ID must be a valid UUID')
+], pricingController.getPricingEventAnalytics);
+
+/**
+ * @swagger
+ * /api/pricing/events/applications:
+ *   get:
+ *     tags: [Pricing Events]
+ *     summary: Get pricing event applications
+ *     description: Get history of pricing event applications
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: tripId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by trip ID
+ *       - in: query
+ *         name: eventId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by event ID
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of items to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of items to skip
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Start date for filtering
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: End date for filtering
+ *     responses:
+ *       200:
+ *         description: Pricing event applications retrieved successfully
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/events/applications', [
+  auth,
+  query('tripId').optional().isUUID().withMessage('Trip ID must be a valid UUID'),
+  query('eventId').optional().isUUID().withMessage('Event ID must be a valid UUID'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be a non-negative integer'),
+  query('startDate').optional().isISO8601().withMessage('Start date must be a valid ISO 8601 date'),
+  query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO 8601 date')
+], pricingController.getPricingEventApplications);
 
 module.exports = router; 

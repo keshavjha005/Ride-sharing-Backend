@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const logger = require('../../utils/logger');
 
 module.exports = {
   up: async (connection) => {
@@ -39,7 +40,7 @@ module.exports = {
 
       // Insert sample email templates
       await connection.execute(`
-        INSERT INTO email_templates (id, template_key, subject_ar, subject_en, body_ar, body_en, html_ar, html_en) VALUES
+        INSERT IGNORE INTO email_templates (id, template_key, subject_ar, subject_en, body_ar, body_en, html_ar, html_en) VALUES
         (?, 'welcome_email', 'مرحباً بك في تطبيق Mate', 'Welcome to Mate App', 
          'مرحباً {name}،\n\nشكراً لك على التسجيل في تطبيق Mate. نحن متحمسون لمساعدتك في رحلاتك.\n\nمع تحيات،\nفريق Mate',
          'Hello {name},\n\nThank you for registering with Mate app. We are excited to help you with your rides.\n\nBest regards,\nMate Team',
@@ -75,7 +76,7 @@ module.exports = {
 
       // Insert sample SMS templates
       await connection.execute(`
-        INSERT INTO sms_templates (id, template_key, message_ar, message_en) VALUES
+        INSERT IGNORE INTO sms_templates (id, template_key, message_ar, message_en) VALUES
         (?, 'welcome_sms', 'مرحباً {name}! شكراً لك على التسجيل في Mate. استمتع برحلاتك!', 'Hello {name}! Thank you for registering with Mate. Enjoy your rides!'),
         
         (?, 'ride_confirmation_sms', 'تم تأكيد رحلتك من {pickup} إلى {destination}. الوقت: {time}. السعر: {price}', 'Your ride from {pickup} to {destination} is confirmed. Time: {time}. Price: {price}'),

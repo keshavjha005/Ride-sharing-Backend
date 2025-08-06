@@ -3,7 +3,7 @@ const { body, param, query } = require('express-validator');
 const router = express.Router();
 
 const rideController = require('../controllers/rideController');
-const auth = require('../middleware/auth');
+const { authenticate: auth } = require('../middleware/auth');
 
 // Basic validation middleware
 const validateRideCreation = [

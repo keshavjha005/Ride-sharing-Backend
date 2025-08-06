@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const rideController = require('../controllers/rideController');
-const auth = require('../middleware/auth');
+const { authenticate: auth } = require('../middleware/auth');
 
 // Simple routes without validation
 router.post('/', auth, (req, res) => {

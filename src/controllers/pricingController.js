@@ -338,6 +338,256 @@ const getPricingHistory = async (req, res) => {
   }
 };
 
+/**
+ * Get all pricing events
+ * GET /api/pricing/events
+ */
+const getPricingEvents = async (req, res) => {
+  try {
+    const { 
+      activeOnly, 
+      eventType, 
+      limit, 
+      offset, 
+      orderBy, 
+      orderDirection 
+    } = req.query;
+
+    const result = await PricingService.getPricingEvents({
+      activeOnly: activeOnly === 'true',
+      eventType,
+      limit: parseInt(limit) || 50,
+      offset: parseInt(offset) || 0,
+      orderBy,
+      orderDirection
+    });
+
+    res.json(result);
+
+  } catch (error) {
+    logger.error('Error getting pricing events:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get pricing events',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get pricing event by ID
+ * GET /api/pricing/events/:id
+ */
+const getPricingEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await PricingService.getPricingEvent(id);
+
+    res.json(result);
+
+  } catch (error) {
+    logger.error('Error getting pricing event:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get pricing event',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Create new pricing event
+ * POST /api/pricing/events
+ */
+const createPricingEvent = async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const {
+      event_name,
+      event_type,
+      start_date,
+      end_date,
+      pricing_multiplier,
+      affected_vehicle_types,
+      affected_areas,
+      description,
+      is_active
+    } = req.body;
+
+    const result = await PricingService.createPricingEvent({
+      event_name,
+      event_type,
+      start_date,
+      end_date,
+      pricing_multiplier,
+      affected_vehicle_types,
+      affected_areas,
+      description,
+      is_active
+    });
+
+    res.status(201).json(result);
+
+  } catch (error) {
+    logger.error('Error creating pricing event:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create pricing event',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Update pricing event
+ * PUT /api/pricing/events/:id
+ */
+const updatePricingEvent = async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const { id } = req.params;
+    const updates = req.body;
+
+    const result = await PricingService.updatePricingEvent(id, updates);
+
+    res.json(result);
+
+  } catch (error) {
+    logger.error('Error updating pricing event:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update pricing event',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Delete pricing event
+ * DELETE /api/pricing/events/:id
+ */
+const deletePricingEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await PricingService.deletePricingEvent(id);
+
+    res.json(result);
+
+  } catch (error) {
+    logger.error('Error deleting pricing event:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete pricing event',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get active pricing events
+ * GET /api/pricing/events/active
+ */
+const getActivePricingEvents = async (req, res) => {
+  try {
+    const { date, location, vehicleTypeName } = req.query;
+
+    const result = await PricingService.getActivePricingEvents(
+      date ? new Date(date) : new Date(),
+      location ? JSON.parse(location) : null,
+      vehicleTypeName
+    );
+
+    res.json(result);
+
+  } catch (error) {
+    logger.error('Error getting active pricing events:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get active pricing events',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get pricing event analytics
+ * GET /api/pricing/events/analytics
+ */
+const getPricingEventAnalytics = async (req, res) => {
+  try {
+    const { period, eventId } = req.query;
+
+    const result = await PricingService.getPricingEventAnalytics({
+      period: parseInt(period) || 30,
+      eventId
+    });
+
+    res.json(result);
+
+  } catch (error) {
+    logger.error('Error getting pricing event analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get pricing event analytics',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get pricing event applications
+ * GET /api/pricing/events/applications
+ */
+const getPricingEventApplications = async (req, res) => {
+  try {
+    const { 
+      tripId, 
+      eventId, 
+      limit, 
+      offset, 
+      startDate, 
+      endDate 
+    } = req.query;
+
+    const result = await PricingService.getPricingEventApplications({
+      tripId,
+      eventId,
+      limit: parseInt(limit) || 50,
+      offset: parseInt(offset) || 0,
+      startDate,
+      endDate
+    });
+
+    res.json(result);
+
+  } catch (error) {
+    logger.error('Error getting pricing event applications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get pricing event applications',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   calculateFare,
   getVehicleTypesWithPricing,
@@ -348,5 +598,13 @@ module.exports = {
   updatePricingMultiplier,
   deletePricingMultiplier,
   getPricingStatistics,
-  getPricingHistory
+  getPricingHistory,
+  getPricingEvents,
+  getPricingEvent,
+  createPricingEvent,
+  updatePricingEvent,
+  deletePricingEvent,
+  getActivePricingEvents,
+  getPricingEventAnalytics,
+  getPricingEventApplications
 }; 

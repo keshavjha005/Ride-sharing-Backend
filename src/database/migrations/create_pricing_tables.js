@@ -3,14 +3,42 @@ const { v4: uuidv4 } = require('uuid');
 module.exports = {
   up: async (connection) => {
     try {
-      // Add pricing columns to existing vehicle_types table
-      await connection.execute(`
-        ALTER TABLE vehicle_types 
-        ADD COLUMN per_km_charges DECIMAL(10,2) DEFAULT 0.00 AFTER description,
-        ADD COLUMN minimum_fare DECIMAL(10,2) DEFAULT 0.00 AFTER per_km_charges,
-        ADD COLUMN maximum_fare DECIMAL(10,2) NULL AFTER minimum_fare,
-        ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at
-      `);
+      // Add pricing columns to existing vehicle_types table if they don't exist
+      try {
+        await connection.execute(`
+          ALTER TABLE vehicle_types 
+          ADD COLUMN per_km_charges DECIMAL(10,2) DEFAULT 0.00 AFTER description
+        `);
+      } catch (error) {
+        if (error.code !== 'ER_DUP_FIELDNAME') throw error;
+      }
+
+      try {
+        await connection.execute(`
+          ALTER TABLE vehicle_types 
+          ADD COLUMN minimum_fare DECIMAL(10,2) DEFAULT 0.00 AFTER per_km_charges
+        `);
+      } catch (error) {
+        if (error.code !== 'ER_DUP_FIELDNAME') throw error;
+      }
+
+      try {
+        await connection.execute(`
+          ALTER TABLE vehicle_types 
+          ADD COLUMN maximum_fare DECIMAL(10,2) NULL AFTER minimum_fare
+        `);
+      } catch (error) {
+        if (error.code !== 'ER_DUP_FIELDNAME') throw error;
+      }
+
+      try {
+        await connection.execute(`
+          ALTER TABLE vehicle_types 
+          ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at
+        `);
+      } catch (error) {
+        if (error.code !== 'ER_DUP_FIELDNAME') throw error;
+      }
 
       // Create pricing multipliers table
       await connection.execute(`
