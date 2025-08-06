@@ -83,6 +83,7 @@ class NotificationQueueService {
           push: null,
           inApp: null
         };
+        logger.info('Notification queues disabled (Redis not available)');
         return;
       }
 
@@ -161,10 +162,6 @@ class NotificationQueueService {
       this.setupJobProcessors();
 
       logger.info('Notification queues initialized successfully');
-    } else {
-      logger.info('Notification queues disabled (Redis not available)');
-    }
-
     } catch (error) {
       logger.error('Failed to initialize notification queues:', error);
       throw error;

@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, query, param } = require('express-validator');
 const walletController = require('../controllers/walletController');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validation');
 
 const router = express.Router();
@@ -28,7 +28,7 @@ const router = express.Router();
  *         description: Unauthorized
  */
 router.get('/balance', [
-  authenticateToken
+  authenticate
 ], walletController.getWalletBalance);
 
 /**
@@ -89,7 +89,7 @@ router.get('/balance', [
  *         description: Unauthorized
  */
 router.get('/transactions', [
-  authenticateToken,
+  authenticate,
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   query('transaction_type').optional().isIn(['credit', 'debit']).withMessage('Invalid transaction type'),
@@ -137,7 +137,7 @@ router.get('/transactions', [
  *         description: Unauthorized
  */
 router.post('/recharge', [
-  authenticateToken,
+  authenticate,
   body('amount')
     .isFloat({ min: 0.01 })
     .withMessage('Amount must be a positive number'),
@@ -175,7 +175,7 @@ router.post('/recharge', [
  *         description: Wallet not found
  */
 router.get('/statistics', [
-  authenticateToken,
+  authenticate,
   query('period').optional().isInt({ min: 1, max: 365 }).withMessage('Period must be between 1 and 365 days'),
   validateRequest
 ], walletController.getWalletStatistics);
@@ -214,7 +214,7 @@ router.get('/statistics', [
  *         description: Wallet not found
  */
 router.put('/limits', [
-  authenticateToken,
+  authenticate,
   body('daily_limit')
     .optional()
     .isFloat({ min: 0 })
@@ -260,7 +260,7 @@ router.put('/limits', [
  *         description: Unauthorized
  */
 router.get('/recharge-requests', [
-  authenticateToken,
+  authenticate,
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   query('status').optional().isIn(['pending', 'processing', 'completed', 'failed', 'cancelled']).withMessage('Invalid status'),
@@ -294,7 +294,7 @@ router.get('/recharge-requests', [
  *         description: Recharge request not found
  */
 router.post('/recharge-requests/:id/cancel', [
-  authenticateToken,
+  authenticate,
   param('id').isUUID().withMessage('Invalid recharge request ID'),
   validateRequest
 ], walletController.cancelRechargeRequest);
