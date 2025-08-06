@@ -40,6 +40,7 @@ const paymentRoutes = require('./routes/payments');
 const pricingRoutes = require('./routes/pricing');
 const transactionRoutes = require('./routes/transactions');
 const withdrawalRoutes = require('./routes/withdrawals');
+const adminRoutes = require('./routes/admin');
 
 // Create Express app
 const app = express();
@@ -141,6 +142,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api', transactionRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
