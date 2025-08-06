@@ -1,251 +1,134 @@
-import React, { useState, useEffect } from 'react'
-import { 
-  Users, 
-  Car, 
-  DollarSign, 
-  TrendingUp, 
-  Activity,
-  Clock,
-  MapPin,
-  AlertCircle,
-  Settings
-} from 'lucide-react'
-import axios from 'axios'
-import toast from 'react-hot-toast'
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../utils/AuthContext';
+import axios from 'axios';
+import WidgetRenderer from '../../components/admin/widgets/WidgetRenderer';
+import { RefreshCw, Settings } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    activeRides: 0,
-    totalRevenue: 0,
-    growthRate: 0
-  })
-  const [recentActivity, setRecentActivity] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
+  const { admin } = useAuth();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [layout, setLayout] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
-      setLoading(true)
-      
-      // Mock data for now - replace with actual API calls
-      const mockStats = {
-        totalUsers: 1247,
-        activeRides: 23,
-        totalRevenue: 45678.90,
-        growthRate: 12.5
-      }
-      
-      const mockActivity = [
-        {
-          id: 1,
-          type: 'user_registration',
-          message: 'New user registered: john.doe@example.com',
-          time: '2 minutes ago',
-          icon: Users
-        },
-        {
-          id: 2,
-          type: 'ride_completed',
-          message: 'Ride completed: Trip #12345',
-          time: '5 minutes ago',
-          icon: Car
-        },
-        {
-          id: 3,
-          type: 'payment_received',
-          message: 'Payment received: $25.50',
-          time: '10 minutes ago',
-          icon: DollarSign
-        },
-        {
-          id: 4,
-          type: 'system_alert',
-          message: 'System maintenance scheduled for tonight',
-          time: '1 hour ago',
-          icon: AlertCircle
-        }
-      ]
+      setRefreshing(true);
+      const [overviewResponse, analyticsResponse] = await Promise.all([
+        axios.get('/api/admin/dashboard/overview'),
+        axios.get('/api/admin/dashboard/analytics?period=7d')
+      ]);
 
-      setStats(mockStats)
-      setRecentActivity(mockActivity)
+      const dashboardData = {
+        stats: overviewResponse.data.data.stats,
+        recentActivity: overviewResponse.data.data.recentActivity,
+        analytics: analyticsResponse.data.data,
+        lastUpdated: overviewResponse.data.data.lastUpdated
+      };
       
+      console.log('Dashboard data:', dashboardData);
+      setDashboardData(dashboardData);
+      setLayout(overviewResponse.data.data.layout);
     } catch (error) {
-      toast.error('Failed to load dashboard data')
-      console.error('Dashboard data error:', error)
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
     } finally {
-      setLoading(false)
+      setLoading(false);
+      setRefreshing(false);
     }
-  }
+  };
 
-  const StatCard = ({ title, value, icon: Icon, color, change }) => (
-    <div className="card">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-text-secondary text-sm font-medium">{title}</p>
-          <p className="text-2xl font-bold text-text-primary mt-1">
-            {typeof value === 'number' && title.includes('Revenue') 
-              ? `$${value.toLocaleString()}`
-              : value.toLocaleString()
-            }
-          </p>
-          {change && (
-            <p className={`text-sm mt-1 ${change > 0 ? 'text-success' : 'text-error'}`}>
-              {change > 0 ? '+' : ''}{change}% from last month
-            </p>
-          )}
-        </div>
-        <div className={`p-3 rounded-lg ${color}`}>
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-      </div>
-    </div>
-  )
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
-  const ActivityItem = ({ activity }) => {
-    const Icon = activity.icon
-    return (
-      <div className="flex items-start space-x-3 p-4 hover:bg-background-tertiary rounded-lg transition-colors duration-200">
-        <div className="p-2 bg-background-tertiary rounded-lg">
-          <Icon className="w-4 h-4 text-text-secondary" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm text-text-primary">{activity.message}</p>
-          <p className="text-xs text-text-muted mt-1">{activity.time}</p>
-        </div>
-      </div>
-    )
-  }
+  const handleRefresh = () => {
+    fetchDashboardData();
+  };
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="card">
-              <div className="loading h-8 w-24 mb-2"></div>
-              <div className="loading h-6 w-16"></div>
-            </div>
-          ))}
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">Dashboard</h1>
-        <p className="text-text-secondary mt-1">
-          Overview of your platform's performance and activity
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Users"
-          value={stats.totalUsers}
-          icon={Users}
-          color="bg-primary"
-          change={stats.growthRate}
-        />
-        <StatCard
-          title="Active Rides"
-          value={stats.activeRides}
-          icon={Car}
-          color="bg-info"
-        />
-        <StatCard
-          title="Total Revenue"
-          value={stats.totalRevenue}
-          icon={DollarSign}
-          color="bg-success"
-          change={8.2}
-        />
-        <StatCard
-          title="Growth Rate"
-          value={`${stats.growthRate}%`}
-          icon={TrendingUp}
-          color="bg-warning"
-        />
-      </div>
-
-      {/* Charts and Activity Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Actions */}
-        <div className="lg:col-span-1">
-          <div className="card">
-            <h3 className="text-lg font-semibold text-text-primary mb-4">
-              Quick Actions
-            </h3>
-            <div className="space-y-3">
-              <button className="w-full btn-secondary text-left flex items-center">
-                <Users className="w-4 h-4 mr-3" />
-                Manage Users
-              </button>
-              <button className="w-full btn-secondary text-left flex items-center">
-                <Car className="w-4 h-4 mr-3" />
-                View Active Rides
-              </button>
-              <button className="w-full btn-secondary text-left flex items-center">
-                <DollarSign className="w-4 h-4 mr-3" />
-                Financial Reports
-              </button>
-              <button className="w-full btn-secondary text-left flex items-center">
-                <Settings className="w-4 h-4 mr-3" />
-                System Settings
-              </button>
-            </div>
-          </div>
+    <div className="p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-text-primary mb-2">
+            Welcome back, {admin?.first_name || 'Admin'}!
+          </h1>
+          <p className="text-text-secondary">
+            Here's what's happening with your platform today.
+          </p>
         </div>
-
-        {/* Recent Activity */}
-        <div className="lg:col-span-2">
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-text-primary">
-                Recent Activity
-              </h3>
-              <button className="text-sm text-primary hover:text-primary-light transition-colors duration-200">
-                View All
-              </button>
-            </div>
-            <div className="space-y-2">
-              {recentActivity.map((activity) => (
-                <ActivityItem key={activity.id} activity={activity} />
-              ))}
-            </div>
-          </div>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center space-x-2 px-4 py-2 bg-background-secondary text-text-primary rounded-lg border border-border hover:bg-background-tertiary transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
+          <button className="flex items-center space-x-2 px-4 py-2 bg-background-secondary text-text-primary rounded-lg border border-border hover:bg-background-tertiary transition-colors">
+            <Settings size={16} />
+            <span>Settings</span>
+          </button>
         </div>
       </div>
 
-      {/* System Status */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">
-          System Status
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-3 h-3 bg-success rounded-full"></div>
-            <span className="text-text-secondary">API Server</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="w-3 h-3 bg-success rounded-full"></div>
-            <span className="text-text-secondary">Database</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="w-3 h-3 bg-success rounded-full"></div>
-            <span className="text-text-secondary">Payment Gateway</span>
-          </div>
+      {/* Dashboard Grid */}
+      {layout && layout.layout_config && layout.layout_config.widgets ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {layout.layout_config.widgets.map((widgetConfig, index) => {
+            const widget = widgetConfig.widget;
+            if (!widget) return null;
+
+            // Determine responsive column span based on widget width
+            const getResponsiveColSpan = (width) => {
+              if (width <= 3) return 'col-span-1';
+              if (width <= 6) return 'col-span-1 md:col-span-2';
+              if (width <= 9) return 'col-span-1 md:col-span-2 lg:col-span-3';
+              return 'col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4';
+            };
+
+            const colSpan = getResponsiveColSpan(widgetConfig.position.w);
+            
+            return (
+              <div key={index} className={colSpan}>
+                <WidgetRenderer
+                  widget={widget}
+                  data={dashboardData}
+                  language={admin?.language_code || 'en'}
+                />
+              </div>
+            );
+          })}
         </div>
-      </div>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-text-muted">No dashboard layout configured</p>
+        </div>
+      )}
+
+      {/* Last Updated */}
+      {dashboardData?.lastUpdated && (
+        <div className="mt-8 text-center">
+          <p className="text-xs text-text-muted">
+            Last updated: {new Date(dashboardData.lastUpdated).toLocaleString()}
+          </p>
+        </div>
+      )}
     </div>
-  )
-}
+  );
+};
 
-export default AdminDashboard 
+export default AdminDashboard; 

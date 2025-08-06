@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const AdminAuthController = require('../controllers/adminAuthController');
+const DashboardController = require('../controllers/dashboardController');
 const { adminAuth, adminRoleAuth } = require('../middleware/adminAuth');
 
 // Admin authentication routes (no auth required)
@@ -13,30 +14,22 @@ router.get('/auth/profile', adminAuth, AdminAuthController.getProfile);
 router.put('/auth/profile', adminAuth, AdminAuthController.updateProfile);
 
 // Dashboard routes (auth required)
-router.get('/dashboard/overview', adminAuth, (req, res) => {
-    // Mock dashboard data for now
-    res.json({
-        success: true,
-        data: {
-            totalUsers: 1247,
-            activeRides: 23,
-            totalRevenue: 45678.90,
-            growthRate: 12.5,
-            recentActivity: [
-                {
-                    id: 1,
-                    type: 'user_registration',
-                    message: 'New user registered: john.doe@example.com',
-                    time: '2 minutes ago'
-                },
-                {
-                    id: 2,
-                    type: 'ride_completed',
-                    message: 'Ride completed: Trip #12345',
-                    time: '5 minutes ago'
-                }
-            ]
-        }
+router.get('/dashboard/overview', adminAuth, DashboardController.getOverview);
+router.get('/dashboard/analytics', adminAuth, DashboardController.getAnalytics);
+router.get('/dashboard/widgets', adminAuth, DashboardController.getWidgets);
+router.put('/dashboard/layout', adminAuth, DashboardController.updateLayout);
+router.get('/dashboard/live-stats', adminAuth, DashboardController.getLiveStats);
+router.get('/dashboard/recent-activity', adminAuth, (req, res) => {
+    DashboardController.getRecentActivity(15).then(activity => {
+        res.json({
+            success: true,
+            data: activity
+        });
+    }).catch(error => {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching recent activity'
+        });
     });
 });
 
