@@ -1,0 +1,182 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-text-primary font-base;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  html {
+    @apply scroll-smooth;
+  }
+}
+
+@layer components {
+  /* Button Components */
+  .btn-primary {
+    @apply bg-button-primary-bg hover:bg-button-primary-hover text-button-primary-text 
+           font-medium px-6 py-3 rounded-md transition-colors duration-200 
+           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  }
+  
+  .btn-secondary {
+    @apply bg-background-secondary hover:bg-hover text-text-primary 
+           font-medium px-6 py-3 rounded-md border border-border 
+           transition-colors duration-200 focus:outline-none focus:ring-2 
+           focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  }
+  
+  .btn-disabled {
+    @apply bg-button-disabled-bg text-button-disabled-text cursor-not-allowed 
+           font-medium px-6 py-3 rounded-md;
+  }
+  
+  /* Input Components */
+  .input-field {
+    @apply bg-input-bg border border-input-border text-input-text 
+           placeholder:text-input-placeholder rounded-md px-4 py-3 
+           focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+           transition-colors duration-200;
+  }
+  
+  /* Card Components */
+  .card {
+    @apply bg-card-bg border border-card-border text-card-text 
+           rounded-lg shadow-card p-6;
+  }
+  
+  .card-hover {
+    @apply card hover:shadow-panel transition-shadow duration-200;
+  }
+  
+  /* Badge Components */
+  .badge {
+    @apply px-3 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .badge-complete {
+    @apply badge bg-badge-complete text-white;
+  }
+  
+  .badge-medium {
+    @apply badge bg-badge-medium text-gray-900;
+  }
+  
+  .badge-high {
+    @apply badge bg-badge-high text-white;
+  }
+  
+  /* Status Indicators */
+  .status-complete {
+    @apply text-task-complete;
+  }
+  
+  .status-inprogress {
+    @apply text-task-inprogress;
+  }
+  
+  .status-pending {
+    @apply text-task-pending;
+  }
+  
+  /* Navigation */
+  .nav-link {
+    @apply text-text-secondary hover:text-text-primary transition-colors duration-200;
+  }
+  
+  .nav-link-active {
+    @apply text-primary bg-background-tertiary;
+  }
+  
+  /* Sidebar */
+  .sidebar {
+    @apply bg-background-secondary border-r border-border w-64 h-screen fixed left-0 top-0;
+  }
+  
+  /* Main Content */
+  .main-content {
+    @apply ml-64 p-6 min-h-screen bg-background;
+  }
+  
+  /* Table Styles */
+  .table-container {
+    @apply bg-card-bg border border-card-border rounded-lg overflow-hidden;
+  }
+  
+  .table {
+    @apply w-full;
+  }
+  
+  .table th {
+    @apply bg-background-tertiary text-text-primary font-semibold px-6 py-4 text-left;
+  }
+  
+  .table td {
+    @apply border-t border-border px-6 py-4 text-text-secondary;
+  }
+  
+  .table tr:hover {
+    @apply bg-hover;
+  }
+  
+  /* Modal Styles */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+  }
+  
+  .modal-content {
+    @apply bg-card-bg border border-card-border rounded-lg shadow-modal p-6 max-w-md w-full mx-4;
+  }
+  
+  /* Form Styles */
+  .form-group {
+    @apply mb-4;
+  }
+  
+  .form-label {
+    @apply block text-text-primary font-medium mb-2;
+  }
+  
+  .form-error {
+    @apply text-error text-sm mt-1;
+  }
+  
+  /* Loading States */
+  .loading {
+    @apply animate-pulse bg-background-tertiary rounded;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .sidebar {
+      @apply w-full h-auto relative;
+    }
+    
+    .main-content {
+      @apply ml-0;
+    }
+  }
+}
+
+@layer utilities {
+  /* Custom utilities */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent;
+  }
+  
+  .border-gradient {
+    @apply border border-transparent bg-gradient-to-r from-primary to-primary-light 
+           bg-clip-border;
+  }
+  
+  .shadow-glow {
+    box-shadow: 0 0 20px rgba(253, 122, 0, 0.3);
+  }
+} 

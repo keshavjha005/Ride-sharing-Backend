@@ -1,0 +1,87 @@
+{
+    "colors": {
+      "primary": "#FD7A00",
+      "primary-dark": "#cc6300",
+      "primary-light": "#ff9740",
+      "background": "#1E1F25",
+      "background-secondary": "#2A2B32",
+      "background-tertiary": "#34353D",
+      "text-primary": "#FFFFFF",
+      "text-secondary": "#B0B3BD",
+      "text-muted": "#6C6F7F",
+      "border": "#3E3F47",
+      "hover": "#2F3037",
+      "success": "#4CAF50",
+      "warning": "#FFC107",
+      "error": "#F44336",
+      "info": "#00BCD4",
+      "task-complete": "#4CAF50",
+      "task-inprogress": "#FD7A00",
+      "task-pending": "#FFC107",
+      "calendar-highlight": "#FD7A00",
+      "tag-android": "#8BC34A",
+      "tag-ios": "#2196F3",
+      "tag-uiux": "#9C27B0"
+    },
+    "typography": {
+      "font-family-base": "Inter, sans-serif",
+      "font-size-xs": "12px",
+      "font-size-sm": "14px",
+      "font-size-md": "16px",
+      "font-size-lg": "18px",
+      "font-size-xl": "24px",
+      "font-size-xxl": "32px",
+      "font-weight-regular": 400,
+      "font-weight-medium": 500,
+      "font-weight-semibold": 600,
+      "font-weight-bold": 700,
+      "line-height-tight": 1.2,
+      "line-height-normal": 1.5,
+      "line-height-loose": 1.75
+    },
+    "spacing": {
+      "space-xxs": "4px",
+      "space-xs": "8px",
+      "space-sm": "12px",
+      "space-md": "16px",
+      "space-lg": "24px",
+      "space-xl": "32px",
+      "space-xxl": "40px"
+    },
+    "border-radius": {
+      "sm": "4px",
+      "md": "8px",
+      "lg": "12px",
+      "xl": "16px",
+      "circle": "50%"
+    },
+    "shadows": {
+      "card": "0 2px 6px rgba(0, 0, 0, 0.25)",
+      "panel": "0 1px 3px rgba(0, 0, 0, 0.2)",
+      "modal": "0 8px 16px rgba(0, 0, 0, 0.35)"
+    },
+    "button": {
+      "primary-bg": "#FD7A00",
+      "primary-hover-bg": "#ff9440",
+      "primary-text": "#ffffff",
+      "disabled-bg": "#555",
+      "disabled-text": "#999"
+    },
+    "input": {
+      "bg": "#2A2B32",
+      "border": "#3E3F47",
+      "text": "#ffffff",
+      "placeholder": "#6C6F7F"
+    },
+    "card": {
+      "bg": "#2A2B32",
+      "border": "#3E3F47",
+      "text": "#ffffff"
+    },
+    "badge": {
+      "complete": "#4CAF50",
+      "medium": "#FFC107",
+      "high": "#F44336"
+    }
+  }
+  

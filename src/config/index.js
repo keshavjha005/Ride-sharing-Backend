@@ -99,6 +99,20 @@ const config = {
     sessionMaxAge: parseInt(process.env.SESSION_MAX_AGE) || 86400000, // 24 hours
   },
 
+  // Admin configuration
+  admin: {
+    jwtSecret: process.env.ADMIN_JWT_SECRET || 'your-admin-secret-key-change-this-in-production',
+    sessionSecret: process.env.ADMIN_SESSION_SECRET || 'your-admin-session-secret',
+    defaultRole: 'admin',
+    defaultPermissions: {
+      users: ['read', 'write'],
+      rides: ['read', 'write'],
+      analytics: ['read'],
+      settings: ['read', 'write'],
+      reports: ['read', 'write']
+    }
+  },
+
   // Rate limiting configuration
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000, // 15 minutes
@@ -133,8 +147,8 @@ const config = {
     timezone: process.env.DEFAULT_TIMEZONE || 'UTC',
   },
 
-  // Admin configuration
-  admin: {
+  // Default admin credentials
+  defaultAdmin: {
     email: process.env.ADMIN_EMAIL || 'admin@mate.com',
     password: process.env.ADMIN_PASSWORD || 'admin123',
   },

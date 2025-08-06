@@ -160,4 +160,30 @@ config/local.json
 .storage/
 
 # Monitoring
-.monitoring/ 
+.monitoring/
+
+# Frontend build artifacts
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/node_modules/
+
+# Frontend environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Frontend logs
+frontend/logs/
+frontend/*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Frontend cache
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/.next/
+frontend/.nuxt/ 
