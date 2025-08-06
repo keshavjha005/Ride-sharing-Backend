@@ -13,8 +13,20 @@ class NotificationQueueService {
   constructor() {
     this.redis = null;
     this.queues = {};
+    this.initialized = false;
+  }
+
+  /**
+   * Initialize the service (lazy initialization)
+   */
+  async initialize() {
+    if (this.initialized) {
+      return;
+    }
+    
     this.initializeRedis();
     this.initializeQueues();
+    this.initialized = true;
   }
 
   /**
@@ -22,6 +34,13 @@ class NotificationQueueService {
    */
   initializeRedis() {
     try {
+      // Skip Redis initialization in development if not available
+      if (process.env.NODE_ENV === 'development' && !process.env.REDIS_HOST) {
+        logger.warn('Redis not configured, notification queues will be disabled in development');
+        this.redis = null;
+        return;
+      }
+
       this.redis = new Redis({
         host: process.env.REDIS_HOST || 'localhost',
         port: process.env.REDIS_PORT || 6379,
@@ -37,11 +56,16 @@ class NotificationQueueService {
 
       this.redis.on('error', (error) => {
         logger.error('Redis connection error:', error);
+        // Don't throw error, just log it
       });
 
     } catch (error) {
       logger.error('Failed to initialize Redis:', error);
-      throw error;
+      // Don't throw error in development
+      if (process.env.NODE_ENV !== 'development') {
+        throw error;
+      }
+      this.redis = null;
     }
   }
 
@@ -50,6 +74,18 @@ class NotificationQueueService {
    */
   initializeQueues() {
     try {
+      // Skip queue initialization if Redis is not available
+      if (!this.redis) {
+        logger.warn('Redis not available, notification queues will be disabled');
+        this.queues = {
+          email: null,
+          sms: null,
+          push: null,
+          inApp: null
+        };
+        return;
+      }
+
       // Email queue
       this.queues.email = new Queue('email-notifications', {
         redis: {
@@ -125,6 +161,9 @@ class NotificationQueueService {
       this.setupJobProcessors();
 
       logger.info('Notification queues initialized successfully');
+    } else {
+      logger.info('Notification queues disabled (Redis not available)');
+    }
 
     } catch (error) {
       logger.error('Failed to initialize notification queues:', error);
@@ -138,6 +177,11 @@ class NotificationQueueService {
   setupQueueEventHandlers() {
     Object.keys(this.queues).forEach(queueName => {
       const queue = this.queues[queueName];
+      
+      // Skip if queue is null (disabled)
+      if (!queue) {
+        return;
+      }
 
       queue.on('completed', (job, result) => {
         logger.info(`Job completed in ${queueName} queue`, {
@@ -174,24 +218,32 @@ class NotificationQueueService {
    */
   setupJobProcessors() {
     // Email job processor
-    this.queues.email.process(async (job) => {
-      return await this.processEmailJob(job);
-    });
+    if (this.queues.email) {
+      this.queues.email.process(async (job) => {
+        return await this.processEmailJob(job);
+      });
+    }
 
     // SMS job processor
-    this.queues.sms.process(async (job) => {
-      return await this.processSMSJob(job);
-    });
+    if (this.queues.sms) {
+      this.queues.sms.process(async (job) => {
+        return await this.processSMSJob(job);
+      });
+    }
 
     // Push notification job processor
-    this.queues.push.process(async (job) => {
-      return await this.processPushNotificationJob(job);
-    });
+    if (this.queues.push) {
+      this.queues.push.process(async (job) => {
+        return await this.processPushNotificationJob(job);
+      });
+    }
 
     // In-app notification job processor
-    this.queues.inApp.process(async (job) => {
-      return await this.processInAppNotificationJob(job);
-    });
+    if (this.queues.inApp) {
+      this.queues.inApp.process(async (job) => {
+        return await this.processInAppNotificationJob(job);
+      });
+    }
   }
 
   /**
@@ -317,8 +369,15 @@ class NotificationQueueService {
    */
   async addToQueue(queueName, notificationData, options = {}) {
     try {
+      await this.initialize();
+      
       if (!this.queues[queueName]) {
-        throw new Error(`Queue not found: ${queueName}`);
+        logger.warn(`Queue '${queueName}' not available (Redis not configured)`);
+        return {
+          success: false,
+          error: 'Queue not available',
+          queueName
+        };
       }
 
       const jobId = uuidv4();
@@ -416,7 +475,7 @@ class NotificationQueueService {
       const { type, ...data } = notificationData;
       const queueName = this.getQueueNameForType(type);
       
-      return await this.addToQueue(queueName, {
+      const result = await this.addToQueue(queueName, {
         type,
         ...data
       }, {
@@ -427,6 +486,14 @@ class NotificationQueueService {
           delay: options.backoffDelay || 2000
         }
       });
+
+      // If queue is not available, send notification directly
+      if (!result.success && result.error === 'Queue not available') {
+        logger.info('Queue not available, sending notification directly');
+        return await this.sendNotification(notificationData, options);
+      }
+
+      return result;
 
     } catch (error) {
       logger.error('Failed to send notification with retry:', error);
@@ -478,9 +545,24 @@ class NotificationQueueService {
    */
   async getQueueStatistics() {
     try {
+      await this.initialize();
+      
       const stats = {};
 
       for (const [queueName, queue] of Object.entries(this.queues)) {
+        if (!queue) {
+          stats[queueName] = {
+            waiting: 0,
+            active: 0,
+            completed: 0,
+            failed: 0,
+            delayed: 0,
+            total: 0,
+            status: 'disabled'
+          };
+          continue;
+        }
+
         const [waiting, active, completed, failed, delayed] = await Promise.all([
           queue.getWaiting(),
           queue.getActive(),
@@ -495,7 +577,8 @@ class NotificationQueueService {
           completed: completed.length,
           failed: failed.length,
           delayed: delayed.length,
-          total: waiting.length + active.length + completed.length + failed.length + delayed.length
+          total: waiting.length + active.length + completed.length + failed.length + delayed.length,
+          status: 'active'
         };
       }
 
@@ -512,7 +595,12 @@ class NotificationQueueService {
    */
   async cleanupCompletedJobs() {
     try {
+      await this.initialize();
+      
       for (const [queueName, queue] of Object.entries(this.queues)) {
+        if (!queue) {
+          continue; // Skip disabled queues
+        }
         await queue.clean(24 * 60 * 60 * 1000, 'completed'); // Clean jobs older than 24 hours
         await queue.clean(24 * 60 * 60 * 1000, 'failed'); // Clean failed jobs older than 24 hours
       }
@@ -530,12 +618,15 @@ class NotificationQueueService {
    */
   async pauseQueue(queueName) {
     try {
+      await this.initialize();
+      
       if (!this.queues[queueName]) {
-        throw new Error(`Queue not found: ${queueName}`);
+        return { success: false, message: `Queue ${queueName} is not available` };
       }
 
       await this.queues[queueName].pause();
       logger.info(`Queue ${queueName} paused successfully`);
+      return { success: true, message: `Queue ${queueName} paused successfully` };
 
     } catch (error) {
       logger.error(`Failed to pause queue ${queueName}:`, error);
@@ -548,12 +639,15 @@ class NotificationQueueService {
    */
   async resumeQueue(queueName) {
     try {
+      await this.initialize();
+      
       if (!this.queues[queueName]) {
-        throw new Error(`Queue not found: ${queueName}`);
+        return { success: false, message: `Queue ${queueName} is not available` };
       }
 
       await this.queues[queueName].resume();
       logger.info(`Queue ${queueName} resumed successfully`);
+      return { success: true, message: `Queue ${queueName} resumed successfully` };
 
     } catch (error) {
       logger.error(`Failed to resume queue ${queueName}:`, error);
@@ -566,6 +660,17 @@ class NotificationQueueService {
    */
   async testService() {
     try {
+      await this.initialize();
+      
+      // Check if Redis is available
+      if (!this.redis) {
+        return { 
+          success: false, 
+          message: 'Notification queue service is disabled (Redis not available)',
+          status: 'disabled'
+        };
+      }
+
       // Test Redis connection
       await this.redis.ping();
       

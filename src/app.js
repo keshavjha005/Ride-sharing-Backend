@@ -35,6 +35,7 @@ const chatRoutes = require('./routes/chat');
 const notificationRoutes = require('./routes/notifications');
 const rideStatusRoutes = require('./routes/ride-status');
 const inboxRoutes = require('./routes/inbox');
+const walletRoutes = require('./routes/wallet');
 
 // Create Express app
 const app = express();
@@ -131,6 +132,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api', notificationRoutes);
 app.use('/api/rides', rideStatusRoutes);
 app.use('/api/inbox', inboxRoutes);
+app.use('/api/wallet', walletRoutes);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

@@ -8,13 +8,19 @@ const socketService = require('./src/services/socketService');
 // Start server
 const startServer = async () => {
   try {
+    console.log('🚀 Starting Mate Backend Server...');
+    
     // Test database connection (optional in development)
     if (config.server.environment === 'production') {
+      console.log('🔍 Testing database connection...');
       await testConnection();
     } else {
       // Skip database connection test in development for now
+      console.log('⏭️  Skipping database connection test in development');
       logger.startup('Skipping database connection test in development');
     }
+    
+    console.log('🌐 Starting HTTP server...');
     
     // Start HTTP server
     const server = app.listen(config.server.port, config.server.host, () => {
@@ -33,8 +39,12 @@ const startServer = async () => {
       console.log(`🔌 WebSocket: ws://${config.server.host}:${config.server.port}`);
     });
 
+    console.log('🔌 Initializing WebSocket server...');
+    
     // Initialize WebSocket server
     socketService.initialize(server);
+    
+    console.log('✅ Server initialization completed successfully');
 
     // Graceful shutdown
     const gracefulShutdown = (signal) => {
@@ -56,6 +66,8 @@ const startServer = async () => {
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
   } catch (error) {
+    console.error('❌ Failed to start server:', error.message);
+    console.error('Stack trace:', error.stack);
     logger.error('Failed to start server', {
       error: error.message,
       stack: error.stack,
@@ -66,6 +78,8 @@ const startServer = async () => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error.message);
+  console.error('Stack trace:', error.stack);
   logger.error('Uncaught Exception:', {
     error: error.message,
     stack: error.stack,
@@ -74,6 +88,7 @@ process.on('uncaughtException', (error) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection:', reason);
   logger.error('Unhandled Rejection at:', {
     promise: promise,
     reason: reason,
