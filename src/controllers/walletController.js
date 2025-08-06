@@ -1,6 +1,8 @@
 const Wallet = require('../models/Wallet');
 const WalletTransaction = require('../models/WalletTransaction');
 const WalletRechargeRequest = require('../models/WalletRechargeRequest');
+const PaymentService = require('../services/paymentService');
+const PaymentMethod = require('../models/PaymentMethod');
 const logger = require('../utils/logger');
 
 /**
@@ -359,7 +361,7 @@ const getTransactionHistory = async (req, res) => {
 const rechargeWallet = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { amount, paymentMethod, currency = 'USD' } = req.body;
+    const { amount, paymentMethod, currency = 'USD', paymentMethodId } = req.body;
     
     // Validate input
     if (!amount || amount <= 0) {
@@ -384,21 +386,63 @@ const rechargeWallet = async (req, res) => {
       payment_gateway: paymentMethod === 'stripe' ? 'stripe' : paymentMethod
     });
     
-    // TODO: Integrate with payment gateway to get payment URL
-    // For now, return a mock payment URL
-    const paymentUrl = `https://payment.gateway.com/pay/${rechargeRequest.id}`;
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
+    let responseData = {
+      rechargeId: rechargeRequest.id,
+      amount: rechargeRequest.amount,
+      currency: currency
+    };
     
-    logger.info(`Wallet recharge request created: ${rechargeRequest.id} for user: ${userId}`);
+    // If payment method ID is provided and it's a Stripe payment, process it
+    if (paymentMethodId && paymentMethod === 'stripe') {
+      try {
+        // Verify payment method belongs to user
+        const userPaymentMethod = await PaymentMethod.getById(paymentMethodId);
+        if (!userPaymentMethod || userPaymentMethod.user_id !== userId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid payment method'
+          });
+        }
+        
+        // Process wallet recharge with payment
+        const paymentResult = await PaymentService.processWalletRecharge(rechargeRequest.id, paymentMethodId);
+        
+        responseData = {
+          ...responseData,
+          paymentTransactionId: paymentResult.paymentTransactionId,
+          paymentIntentId: paymentResult.paymentIntentId,
+          clientSecret: paymentResult.clientSecret,
+          requiresAction: paymentResult.requiresAction,
+          nextAction: paymentResult.nextAction
+        };
+        
+        logger.info(`Wallet recharge processed with payment: ${rechargeRequest.id} for user: ${userId}`);
+        
+      } catch (paymentError) {
+        logger.error('Error processing payment for recharge:', paymentError);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to process payment',
+          error: paymentError.message
+        });
+      }
+    } else {
+      // For non-Stripe payments or when no payment method is provided
+      const paymentUrl = `https://payment.gateway.com/pay/${rechargeRequest.id}`;
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
+      
+      responseData = {
+        ...responseData,
+        paymentUrl,
+        expiresAt: expiresAt.toISOString()
+      };
+      
+      logger.info(`Wallet recharge request created: ${rechargeRequest.id} for user: ${userId}`);
+    }
     
     res.json({
       success: true,
-      data: {
-        rechargeId: rechargeRequest.id,
-        amount: rechargeRequest.amount,
-        paymentUrl,
-        expiresAt: expiresAt.toISOString()
-      }
+      data: responseData
     });
     
   } catch (error) {

@@ -36,6 +36,7 @@ const notificationRoutes = require('./routes/notifications');
 const rideStatusRoutes = require('./routes/ride-status');
 const inboxRoutes = require('./routes/inbox');
 const walletRoutes = require('./routes/wallet');
+const paymentRoutes = require('./routes/payments');
 
 // Create Express app
 const app = express();
@@ -133,6 +134,7 @@ app.use('/api', notificationRoutes);
 app.use('/api/rides', rideStatusRoutes);
 app.use('/api/inbox', inboxRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
