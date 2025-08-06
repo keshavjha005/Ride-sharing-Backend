@@ -12,6 +12,7 @@ const createInboxTables = require('./migrations/create_inbox_tables');
 const createEmailSMSTemplates = require('./migrations/create_email_sms_templates');
 const createPricingTables = require('./migrations/create_pricing_tables');
 const createPricingEventsTables = require('./migrations/create_pricing_events_tables');
+const createWithdrawalTables = require('./migrations/create_withdrawal_tables');
 
 // Migration registry
 const migrations = [
@@ -64,6 +65,11 @@ const migrations = [
     name: 'create_pricing_events_tables',
     migration: createPricingEventsTables,
     description: 'Create dynamic event pricing system tables'
+  },
+  {
+    name: 'create_withdrawal_tables',
+    migration: createWithdrawalTables,
+    description: 'Create withdrawal and payout system tables'
   }
 ];
 
