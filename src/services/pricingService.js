@@ -3,6 +3,7 @@ const PricingMultiplier = require('../models/PricingMultiplier');
 const PricingCalculation = require('../models/PricingCalculation');
 const PricingEvent = require('../models/PricingEvent');
 const PricingEventApplication = require('../models/PricingEventApplication');
+const db = require('../config/database');
 const logger = require('../utils/logger');
 
 class PricingService {
@@ -193,6 +194,55 @@ class PricingService {
   }
 
   /**
+   * Get overall pricing statistics for all vehicle types
+   * @param {string} period - Period in days (default: 30)
+   * @returns {Promise<Object>} - Overall pricing statistics
+   */
+  static async getOverallPricingStatistics(period = '30') {
+    try {
+      const days = parseInt(period);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      const query = `
+        SELECT 
+          COUNT(*) as total_calculations,
+          AVG(base_fare) as avg_base_fare,
+          AVG(final_fare) as avg_final_fare,
+          MIN(base_fare) as min_base_fare,
+          MAX(base_fare) as max_base_fare,
+          MIN(final_fare) as min_final_fare,
+          MAX(final_fare) as max_final_fare,
+          AVG(base_distance) as avg_distance,
+          SUM(final_fare) as total_revenue
+        FROM pricing_calculations 
+        WHERE created_at >= ?
+      `;
+      
+      const rows = await db.executeQuery(query, [startDate]);
+      
+      if (rows.length === 0) {
+        return {
+          total_calculations: 0,
+          avg_base_fare: 0,
+          avg_final_fare: 0,
+          min_base_fare: 0,
+          max_base_fare: 0,
+          min_final_fare: 0,
+          max_final_fare: 0,
+          avg_distance: 0,
+          total_revenue: 0
+        };
+      }
+      
+      return rows[0];
+    } catch (error) {
+      logger.error('Error getting overall pricing statistics:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get all vehicle types with pricing information
    * @param {boolean} activeOnly - Return only active vehicle types
    * @returns {Promise<Object>} - Vehicle types with pricing
@@ -346,6 +396,59 @@ class PricingService {
 
     } catch (error) {
       logger.error('Error getting pricing history:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get recent pricing calculations for dashboard
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} - Recent pricing calculations
+   */
+  static async getRecentPricingCalculations(options = {}) {
+    try {
+      const { limit = 10 } = options;
+      
+      // Ensure limit is a valid number
+      const limitValue = Math.max(1, Math.min(1000, parseInt(limit) || 10));
+      
+      // Debug logging
+      logger.info('Pricing calculations query params:', { limit, limitValue, type: typeof limitValue });
+      
+      const query = `
+        SELECT 
+          pc.*,
+          vt.name as vehicle_type_name
+        FROM pricing_calculations pc
+        LEFT JOIN vehicle_types vt ON pc.vehicle_type_id = vt.id
+        ORDER BY pc.created_at DESC
+        LIMIT ${limitValue}
+      `;
+      
+      const rows = await db.executeQuery(query, []);
+      
+      return {
+        success: true,
+        data: rows.map(row => ({
+          id: row.id,
+          trip_id: row.trip_id,
+          vehicle_type_id: row.vehicle_type_id,
+          vehicle_type_name: row.vehicle_type_name,
+          base_distance: row.base_distance,
+          base_fare: row.base_fare,
+          final_fare: row.final_fare,
+          applied_multipliers: row.applied_multipliers ? JSON.parse(row.applied_multipliers) : [],
+          calculation_details: row.calculation_details ? JSON.parse(row.calculation_details) : {},
+          created_at: row.created_at
+        })),
+        pagination: {
+          limit: limitValue,
+          total: rows.length
+        }
+      };
+
+    } catch (error) {
+      logger.error('Error getting recent pricing calculations:', error);
       throw error;
     }
   }
@@ -605,6 +708,136 @@ class PricingService {
 
     } catch (error) {
       logger.error('Error getting pricing event applications:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get multiplier usage analytics for a specific vehicle type
+   * @param {string} vehicleTypeId - Vehicle type ID
+   * @param {string} period - Period in days (default: 30)
+   * @returns {Promise<Object>} - Multiplier usage analytics
+   */
+  static async getMultiplierUsageAnalytics(vehicleTypeId, period = '30') {
+    try {
+      const vehicleType = await VehicleType.findById(vehicleTypeId);
+      if (!vehicleType) {
+        throw new Error('Vehicle type not found');
+      }
+
+      const days = parseInt(period);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      const query = `
+        SELECT 
+          JSON_EXTRACT(applied_multipliers, '$[*].multiplier_type') as multiplier_types,
+          COUNT(*) as usage_count,
+          AVG(JSON_EXTRACT(applied_multipliers, '$[*].multiplier_value')) as avg_multiplier_value
+        FROM pricing_calculations 
+        WHERE vehicle_type_id = ? AND created_at >= ? AND applied_multipliers IS NOT NULL
+        GROUP BY multiplier_types
+        ORDER BY usage_count DESC
+      `;
+      
+      const rows = await db.executeQuery(query, [vehicleTypeId, startDate]);
+      
+      return {
+        success: true,
+        data: {
+          vehicle_type: {
+            id: vehicleType.id,
+            name: vehicleType.name
+          },
+          multiplier_usage: rows,
+          total_applications: rows.reduce((sum, row) => sum + row.usage_count, 0),
+          period_days: days
+        }
+      };
+    } catch (error) {
+      logger.error('Error getting multiplier usage analytics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get overall multiplier usage analytics
+   * @param {string} period - Period in days (default: 30)
+   * @returns {Promise<Object>} - Overall multiplier usage analytics
+   */
+  static async getOverallMultiplierUsageAnalytics(period = '30') {
+    try {
+      const days = parseInt(period);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      const query = `
+        SELECT 
+          JSON_EXTRACT(applied_multipliers, '$[*].multiplier_type') as multiplier_types,
+          COUNT(*) as usage_count,
+          AVG(JSON_EXTRACT(applied_multipliers, '$[*].multiplier_value')) as avg_multiplier_value
+        FROM pricing_calculations 
+        WHERE created_at >= ? AND applied_multipliers IS NOT NULL
+        GROUP BY multiplier_types
+        ORDER BY usage_count DESC
+      `;
+      
+      const rows = await db.executeQuery(query, [startDate]);
+      
+      return {
+        success: true,
+        data: {
+          multiplier_usage: rows,
+          total_applications: rows.reduce((sum, row) => sum + row.usage_count, 0),
+          period_days: days
+        }
+      };
+    } catch (error) {
+      logger.error('Error getting overall multiplier usage analytics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get revenue analytics
+   * @param {string} period - Period in days (default: 30)
+   * @returns {Promise<Object>} - Revenue analytics
+   */
+  static async getRevenueAnalytics(period = '30') {
+    try {
+      const days = parseInt(period);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      const query = `
+        SELECT 
+          DATE(created_at) as date,
+          COUNT(*) as total_calculations,
+          SUM(final_fare) as daily_revenue,
+          AVG(final_fare) as avg_fare
+        FROM pricing_calculations 
+        WHERE created_at >= ?
+        GROUP BY DATE(created_at)
+        ORDER BY date DESC
+      `;
+      
+      const rows = await db.executeQuery(query, [startDate]);
+      
+      const totalRevenue = rows.reduce((sum, row) => sum + parseFloat(row.daily_revenue || 0), 0);
+      const totalCalculations = rows.reduce((sum, row) => sum + row.total_calculations, 0);
+      
+      return {
+        success: true,
+        data: {
+          daily_revenue: rows,
+          total_revenue: totalRevenue,
+          total_calculations: totalCalculations,
+          avg_fare: totalCalculations > 0 ? totalRevenue / totalCalculations : 0,
+          period_days: days
+        }
+      };
+    } catch (error) {
+      logger.error('Error getting revenue analytics:', error);
       throw error;
     }
   }

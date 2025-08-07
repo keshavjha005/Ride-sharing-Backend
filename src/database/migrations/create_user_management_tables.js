@@ -6,7 +6,7 @@ module.exports = {
       console.log('Creating user management tables...');
 
       // 1. User Analytics Table
-      await db.executeQuery(`
+      await db.execute(`
         CREATE TABLE IF NOT EXISTS user_analytics (
           id VARCHAR(36) PRIMARY KEY,
           user_id VARCHAR(36) NOT NULL,
@@ -24,7 +24,7 @@ module.exports = {
       `);
 
       // 2. User Reports Table
-      await db.executeQuery(`
+      await db.execute(`
         CREATE TABLE IF NOT EXISTS user_reports (
           id VARCHAR(36) PRIMARY KEY,
           reported_user_id VARCHAR(36) NOT NULL,
@@ -93,7 +93,7 @@ module.exports = {
       ];
 
       for (const analytics of sampleUserAnalytics) {
-        await db.executeQuery(`
+        await db.execute(`
           INSERT INTO user_analytics (
             id, user_id, total_rides, total_spent, average_rating, 
             last_activity, registration_date, verification_status, risk_score
@@ -142,7 +142,7 @@ module.exports = {
       ];
 
       for (const report of sampleUserReports) {
-        await db.executeQuery(`
+        await db.execute(`
           INSERT INTO user_reports (
             id, reported_user_id, reporter_user_id, report_type,
             report_reason_ar, report_reason_en, evidence_files,
@@ -174,8 +174,8 @@ module.exports = {
     try {
       console.log('Dropping user management tables...');
       
-      await db.executeQuery('DROP TABLE IF EXISTS user_reports');
-      await db.executeQuery('DROP TABLE IF EXISTS user_analytics');
+      await db.execute('DROP TABLE IF EXISTS user_reports');
+      await db.execute('DROP TABLE IF EXISTS user_analytics');
       
       console.log('✅ User management tables dropped successfully');
     } catch (error) {

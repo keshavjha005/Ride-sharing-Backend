@@ -71,6 +71,8 @@ class WithdrawalMethod {
       const data = rows[0];
       if (data.account_details) {
         data.account_details = JSON.parse(data.account_details);
+      } else {
+        data.account_details = {};
       }
 
       return new WithdrawalMethod(data);
@@ -100,6 +102,8 @@ class WithdrawalMethod {
       return rows.map(row => {
         if (row.account_details) {
           row.account_details = JSON.parse(row.account_details);
+        } else {
+          row.account_details = {};
         }
         return new WithdrawalMethod(row);
       });
@@ -126,6 +130,8 @@ class WithdrawalMethod {
       const data = rows[0];
       if (data.account_details) {
         data.account_details = JSON.parse(data.account_details);
+      } else {
+        data.account_details = {};
       }
 
       return new WithdrawalMethod(data);

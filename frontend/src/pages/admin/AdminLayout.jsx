@@ -23,17 +23,17 @@ const AdminLayout = () => {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <Sidebar />
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col ml-64">
         {/* Header */}
         <Header admin={admin} />
         
         {/* Page Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
+        <main className="flex-1 bg-background">
           <div className="container mx-auto px-6 py-8">
             <Outlet />
           </div>

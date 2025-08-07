@@ -45,84 +45,46 @@ const MetricWidget = ({ widget, data, language = 'en' }) => {
   };
 
   const getValue = () => {
-    console.log('🔍 MetricWidget data:', data);
-    console.log('🔍 Widget key:', widget.widget_key);
-    console.log('🔍 Stats data:', data?.stats);
-    
     if (!data || !data.stats) {
-      console.log('❌ No data or stats found');
       return 0;
     }
     
     switch (widget.widget_key) {
       case 'total_users':
-        const totalUsers = data.stats.totalUsers || 0;
-        console.log('👥 Total users:', totalUsers);
-        return totalUsers;
+        return data.stats.totalUsers || 0;
       case 'verified_users':
-        const verifiedUsers = data.stats.verifiedUsers || 0;
-        console.log('✅ Verified users:', verifiedUsers);
-        return verifiedUsers;
+        return data.stats.verifiedUsers || 0;
       case 'unverified_users':
-        const unverifiedUsers = data.stats.unverifiedUsers || 0;
-        console.log('❌ Unverified users:', unverifiedUsers);
-        return unverifiedUsers;
+        return data.stats.unverifiedUsers || 0;
       case 'active_rides':
-        const activeRides = data.stats.activeRides || 0;
-        console.log('🚗 Active rides:', activeRides);
-        return activeRides;
+        return data.stats.activeRides || 0;
       case 'total_rides':
-        const totalRidesCount = data.stats.totalRides || 0;
-        console.log('🚗 Total rides:', totalRidesCount);
-        return totalRidesCount;
+        return data.stats.totalRides || 0;
       case 'completed_rides':
-        const completedRidesCount = data.stats.completedRides || 0;
-        console.log('✅ Completed rides:', completedRidesCount);
-        return completedRidesCount;
+        return data.stats.completedRides || 0;
       case 'cancelled_rides':
-        const cancelledRides = data.stats.cancelledRides || 0;
-        console.log('❌ Cancelled rides:', cancelledRides);
-        return cancelledRides;
+        return data.stats.cancelledRides || 0;
       case 'revenue_today':
-        const todayRevenue = data.stats.todayRevenue || 0;
-        console.log('💰 Today revenue:', todayRevenue);
-        return todayRevenue;
+        return data.stats.todayRevenue || 0;
       case 'total_revenue':
-        const totalRevenue = data.stats.totalRevenue || 0;
-        console.log('💰 Total revenue:', totalRevenue);
-        return totalRevenue;
+        return data.stats.totalRevenue || 0;
       case 'new_users_today':
-        const newUsersToday = data.stats.newUsersToday || 0;
-        console.log('👤 New users today:', newUsersToday);
-        return newUsersToday;
+        return data.stats.newUsersToday || 0;
       case 'completed_rides_today':
-        const completedRidesToday = data.stats.completedRidesToday || 0;
-        console.log('✅ Completed rides today:', completedRidesToday);
-        return completedRidesToday;
+        return data.stats.completedRidesToday || 0;
       case 'avg_user_rating':
-        const avgUserRating = data.stats.avgUserRating || 0;
-        console.log('⭐ Avg user rating:', avgUserRating);
-        return avgUserRating;
+        return data.stats.avgUserRating || 0;
       case 'avg_fare':
-        const avgFare = data.stats.avgFare || 0;
-        console.log('💰 Avg fare:', avgFare);
-        return avgFare;
+        return data.stats.avgFare || 0;
       case 'avg_rides_per_user':
-        const avgRidesPerUser = data.stats.avgRidesPerUser || 0;
-        console.log('🚗 Avg rides per user:', avgRidesPerUser);
-        return avgRidesPerUser;
+        return data.stats.avgRidesPerUser || 0;
       case 'avg_spent_per_user':
-        const avgSpentPerUser = data.stats.avgSpentPerUser || 0;
-        console.log('💰 Avg spent per user:', avgSpentPerUser);
-        return avgSpentPerUser;
+        return data.stats.avgSpentPerUser || 0;
       case 'ride_completion_rate':
         const totalRidesForRate = data.stats.totalRides || 0;
         const completedRidesForRate = data.stats.completedRides || 0;
-        const completionRate = totalRidesForRate > 0 ? (completedRidesForRate / totalRidesForRate) * 100 : 0;
-        console.log('📊 Ride completion rate:', completionRate);
-        return completionRate;
+        return totalRidesForRate > 0 ? (completedRidesForRate / totalRidesForRate) * 100 : 0;
       default:
-        console.log('❓ Unknown widget key:', widget.widget_key);
         return 0;
     }
   };

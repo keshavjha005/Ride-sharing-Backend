@@ -10,159 +10,110 @@ const AdminLocalizationController = require('../controllers/adminLocalizationCon
 const SystemConfigController = require('../controllers/systemConfigController');
 const ReportingController = require('../controllers/reportingController');
 const AdminManagementController = require('../controllers/adminManagementController');
+const AdminPricingController = require('../controllers/adminPricingController');
+const AdminVehicleController = require('../controllers/adminVehicleController');
 const { adminAuth, adminRoleAuth, adminPermissionAuth } = require('../middleware/adminAuth');
 
 // Admin authentication routes (no auth required)
 router.post('/auth/login', AdminAuthController.login);
-router.post('/auth/logout', adminAuth, AdminAuthController.logout);
 router.post('/auth/refresh', AdminAuthController.refreshToken);
+router.post('/auth/logout', AdminAuthController.logout);
 
-// Admin profile routes (auth required)
+// Admin profile routes (admin auth required)
 router.get('/auth/profile', adminAuth, AdminAuthController.getProfile);
 router.put('/auth/profile', adminAuth, AdminAuthController.updateProfile);
-router.post('/auth/change-password', adminAuth, AdminAuthController.changePassword);
+router.put('/auth/change-password', adminAuth, AdminAuthController.changePassword);
+
+// Admin dashboard routes (admin auth required)
+router.get('/dashboard/overview', adminAuth, DashboardController.getOverview);
+router.get('/dashboard/analytics', adminAuth, DashboardController.getAnalytics);
+router.put('/dashboard/layout', adminAuth, DashboardController.updateLayout);
 
 // Admin Management routes (super admin only)
 router.get('/admin-management', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getAdmins);
-router.get('/admin-management/stats', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getAdminStats);
 router.get('/admin-management/roles-permissions', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getRolesAndPermissions);
+router.get('/admin-management/stats', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getAdminStats);
 router.get('/admin-management/:id', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getAdminById);
 router.post('/admin-management', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.createAdmin);
 router.put('/admin-management/:id', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.updateAdmin);
 router.delete('/admin-management/:id', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.deleteAdmin);
-router.post('/admin-management/:id/toggle-status', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.toggleAdminStatus);
+router.put('/admin-management/:id/toggle-status', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.toggleAdminStatus);
 
-// Dashboard routes (auth required)
-router.get('/dashboard/overview', adminAuth, DashboardController.getOverview);
-router.get('/dashboard/analytics', adminAuth, DashboardController.getAnalytics);
-router.get('/dashboard/widgets', adminAuth, DashboardController.getWidgets);
-router.put('/dashboard/layout', adminAuth, DashboardController.updateLayout);
-router.get('/dashboard/live-stats', adminAuth, DashboardController.getLiveStats);
-router.get('/dashboard/recent-activity', adminAuth, (req, res) => {
-    DashboardController.getRecentActivity(15).then(activity => {
-        res.json({
-            success: true,
-            data: activity
-        });
-    }).catch(error => {
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching recent activity'
-        });
-    });
-});
-
-// User Management routes (auth required)
+// User Management routes (admin auth required)
 router.get('/users', adminAuth, UserManagementController.getUsers);
-router.get('/users/summary', adminAuth, UserManagementController.getSummary);
-router.get('/users/export', adminAuth, UserManagementController.exportUsers);
 router.get('/users/:id', adminAuth, UserManagementController.getUserById);
 router.put('/users/:id', adminAuth, UserManagementController.updateUser);
 router.delete('/users/:id', adminAuth, UserManagementController.deleteUser);
 router.post('/users/:id/verify', adminAuth, UserManagementController.verifyUser);
 router.post('/users/:id/block', adminAuth, UserManagementController.toggleUserStatus);
 router.get('/users/:id/analytics', adminAuth, UserManagementController.getUserAnalytics);
+router.get('/users/summary', adminAuth, UserManagementController.getSummary);
+router.get('/users/export', adminAuth, UserManagementController.exportUsers);
 
-// User Reports routes (auth required)
+// User Reports routes (admin auth required)
 router.get('/user-reports', adminAuth, UserReportsController.getReports);
-router.get('/user-reports/summary', adminAuth, UserReportsController.getReportsSummary);
-router.get('/user-reports/recent', adminAuth, UserReportsController.getRecentReports);
-router.get('/user-reports/export', adminAuth, UserReportsController.exportReports);
 router.get('/user-reports/:id', adminAuth, UserReportsController.getReportById);
-router.post('/user-reports', adminAuth, UserReportsController.createReport);
 router.put('/user-reports/:id/status', adminAuth, UserReportsController.updateReportStatus);
-router.post('/user-reports/bulk-update', adminAuth, UserReportsController.bulkUpdateReports);
-router.get('/users/:userId/reports', adminAuth, UserReportsController.getReportsByUserId);
+router.post('/user-reports/:id/response', adminAuth, UserReportsController.updateAdminNotes);
 
-// Ride Management routes (auth required)
+// Ride Management routes (admin auth required)
 router.get('/rides', adminAuth, RideManagementController.getRides);
-router.get('/rides/summary', adminAuth, RideManagementController.getSummary);
+router.get('/rides/export', adminAuth, RideManagementController.exportRides);
 router.get('/rides/:id', adminAuth, RideManagementController.getRideById);
 router.put('/rides/:id/status', adminAuth, RideManagementController.updateRideStatus);
+router.get('/rides/:id/analytics', adminAuth, RideManagementController.getRideAnalytics);
 router.delete('/rides/:id', adminAuth, RideManagementController.deleteRide);
-router.get('/rides/active', adminAuth, RideManagementController.getActiveRides);
-router.get('/rides/completed', adminAuth, RideManagementController.getCompletedRides);
-router.get('/rides/cancelled', adminAuth, RideManagementController.getCancelledRides);
-router.get('/rides/analytics', adminAuth, RideManagementController.getRideAnalytics);
-router.get('/rides/export', adminAuth, RideManagementController.exportRides);
 
-// Ride Disputes routes (auth required)
-router.get('/ride-disputes', adminAuth, RideDisputesController.getDisputes);
-router.get('/ride-disputes/summary', adminAuth, RideDisputesController.getDisputesSummary);
-router.get('/ride-disputes/recent', adminAuth, RideDisputesController.getRecentDisputes);
-router.get('/ride-disputes/export', adminAuth, RideDisputesController.exportDisputes);
-router.get('/ride-disputes/:id', adminAuth, RideDisputesController.getDisputeById);
-router.post('/ride-disputes', adminAuth, RideDisputesController.createDispute);
-router.put('/ride-disputes/:id/resolve', adminAuth, RideDisputesController.resolveDispute);
-router.get('/ride-disputes/status/:status', adminAuth, RideDisputesController.getDisputesByStatus);
-router.get('/ride-disputes/type/:type', adminAuth, RideDisputesController.getDisputesByType);
-router.get('/rides/:rideId/disputes', adminAuth, RideDisputesController.getDisputesByRideId);
+// Ride Disputes routes (admin auth required)
+// router.get('/ride-disputes', adminAuth, RideDisputesController.getDisputes);
+// router.get('/ride-disputes/:id', adminAuth, RideDisputesController.getDisputeById);
+// router.put('/ride-disputes/:id/status', adminAuth, RideDisputesController.updateDisputeStatus);
+// router.post('/ride-disputes/:id/resolution', adminAuth, RideDisputesController.addDisputeResolution);
 
-// Localization Management routes (auth required)
-router.get('/localized-content', adminAuth, AdminLocalizationController.getAdminLocalizedContent);
-router.post('/localized-content', adminAuth, AdminLocalizationController.createAdminLocalizedContent);
-router.put('/localized-content/:id', adminAuth, AdminLocalizationController.updateAdminLocalizedContent);
-router.delete('/localized-content/:id', adminAuth, AdminLocalizationController.deleteAdminLocalizedContent);
+// Localization Management routes (admin auth required)
+// router.get('/localized-content', adminAuth, AdminLocalizationController.getAdminLocalizedContent);
+// router.post('/localized-content', adminAuth, AdminLocalizationController.createAdminLocalizedContent);
+// router.put('/localized-content/:id', adminAuth, AdminLocalizationController.updateAdminLocalizedContent);
+// router.delete('/localized-content/:id', adminAuth, AdminLocalizationController.deleteAdminLocalizedContent);
+// router.get('/language-settings', adminAuth, AdminLocalizationController.getLanguageSettings);
+// router.put('/language-settings', adminAuth, AdminLocalizationController.updateLanguageSettings);
+// router.get('/translations', adminAuth, AdminLocalizationController.getTranslationManagement);
+// router.post('/translations', adminAuth, AdminLocalizationController.createTranslationRequest);
+// router.put('/translations/:id', adminAuth, AdminLocalizationController.updateTranslation);
 
-// Language Settings routes
-router.get('/language-settings', adminAuth, AdminLocalizationController.getLanguageSettings);
-router.put('/language-settings/:language_code', adminAuth, AdminLocalizationController.updateLanguageSettings);
+// System Configuration routes (admin auth required)
+// router.get('/system-settings', adminAuth, SystemConfigController.getSystemSettings);
+// router.put('/system-settings', adminAuth, SystemConfigController.updateSystemSetting);
+// router.get('/system-settings/categories', adminAuth, SystemConfigController.getSystemSettingsCategories);
+// router.get('/feature-flags', adminAuth, SystemConfigController.getFeatureFlags);
+// router.put('/feature-flags', adminAuth, SystemConfigController.updateFeatureFlag);
+// router.get('/system-health', adminAuth, SystemConfigController.getSystemHealth);
+// router.get('/system-health/logs', adminAuth, SystemConfigController.getSystemHealthLogs);
 
-// Translation Management routes
-router.get('/translations', adminAuth, AdminLocalizationController.getTranslationManagement);
-router.post('/translations', adminAuth, AdminLocalizationController.createTranslationRequest);
-router.put('/translations/:id', adminAuth, AdminLocalizationController.updateTranslation);
-router.get('/translations/pending', adminAuth, AdminLocalizationController.getPendingTranslations);
-router.put('/translations/:id/approve', adminAuth, AdminLocalizationController.approveTranslation);
+// Reporting routes (admin auth required)
+// router.get('/scheduled-reports', adminAuth, ReportingController.getScheduledReports);
+// router.post('/scheduled-reports', adminAuth, ReportingController.createScheduledReport);
+// router.put('/scheduled-reports/:id', adminAuth, ReportingController.updateScheduledReport);
+// router.delete('/scheduled-reports/:id', adminAuth, ReportingController.deleteScheduledReport);
+// router.post('/scheduled-reports/:id/generate', adminAuth, ReportingController.generateReport);
 
-// Content export/import routes
-router.get('/localized-content/export', adminAuth, AdminLocalizationController.exportLocalizedContent);
+// Admin Pricing Management routes (admin auth required)
+router.get('/pricing/dashboard', adminAuth, AdminPricingController.getPricingDashboard);
+router.get('/pricing/vehicle-types', adminAuth, AdminPricingController.getVehicleTypesManagement);
+router.put('/pricing/vehicle-types/:id', adminAuth, AdminPricingController.updateVehicleTypePricing);
+router.get('/pricing/multipliers', adminAuth, AdminPricingController.getMultipliersManagement);
+router.post('/pricing/multipliers', adminAuth, AdminPricingController.createMultiplier);
+router.put('/pricing/multipliers/:id', adminAuth, AdminPricingController.updateMultiplier);
+router.delete('/pricing/multipliers/:id', adminAuth, AdminPricingController.deleteMultiplier);
+router.get('/pricing/events', adminAuth, AdminPricingController.getEventsManagement);
+router.post('/pricing/events', adminAuth, AdminPricingController.createEvent);
+router.put('/pricing/events/:id', adminAuth, AdminPricingController.updateEvent);
+router.delete('/pricing/events/:id', adminAuth, AdminPricingController.deleteEvent);
+router.get('/pricing/analytics', adminAuth, AdminPricingController.getPricingAnalytics);
+router.post('/pricing/bulk-update', adminAuth, adminPermissionAuth('pricing_management'), AdminPricingController.bulkUpdatePricing);
+router.get('/pricing/export', adminAuth, AdminPricingController.exportPricingData);
 
-// Admin language preferences
-router.get('/profile/language', adminAuth, AdminLocalizationController.getAdminLanguagePreference);
-router.put('/profile/language', adminAuth, AdminLocalizationController.updateAdminLanguagePreference);
-
-// System Configuration routes (auth required)
-router.get('/system-settings', adminAuth, SystemConfigController.getSystemSettings);
-router.post('/system-settings', adminAuth, SystemConfigController.createSystemSetting);
-router.put('/system-settings/:key', adminAuth, SystemConfigController.updateSystemSetting);
-router.delete('/system-settings/:key', adminAuth, SystemConfigController.deleteSystemSetting);
-
-// System Settings Categories
-router.get('/system-settings/categories', adminAuth, SystemConfigController.getSystemSettingsCategories);
-router.get('/system-settings/category/:category', adminAuth, SystemConfigController.getSystemSettingsByCategory);
-
-// Feature Flags routes
-router.get('/feature-flags', adminAuth, SystemConfigController.getFeatureFlags);
-router.post('/feature-flags', adminAuth, SystemConfigController.createFeatureFlag);
-router.put('/feature-flags/:id', adminAuth, SystemConfigController.updateFeatureFlag);
-router.delete('/feature-flags/:id', adminAuth, SystemConfigController.deleteFeatureFlag);
-
-// System Health routes
-router.get('/system-health', adminAuth, SystemConfigController.getSystemHealth);
-router.get('/system-health/logs', adminAuth, SystemConfigController.getSystemHealthLogs);
-router.post('/system-health/check', adminAuth, SystemConfigController.checkSystemHealth);
-
-// Reporting & Analytics routes (auth required)
-router.post('/reports/generate', adminAuth, ReportingController.generateReport);
-router.get('/scheduled-reports', adminAuth, ReportingController.getScheduledReports);
-router.post('/scheduled-reports', adminAuth, ReportingController.createScheduledReport);
-router.put('/scheduled-reports/:id', adminAuth, ReportingController.updateScheduledReport);
-router.delete('/scheduled-reports/:id', adminAuth, ReportingController.deleteScheduledReport);
-
-// Analytics routes
-router.get('/analytics', adminAuth, ReportingController.getAnalytics);
-
-// Export routes
-router.get('/export', adminAuth, ReportingController.exportData);
-
-// Health check route
-router.get('/health', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Admin API is running',
-        timestamp: new Date().toISOString()
-    });
-});
+// Admin Vehicle Management routes (admin auth required)
+router.use('/vehicles', require('./adminVehicles'));
 
 module.exports = router; 

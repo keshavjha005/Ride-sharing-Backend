@@ -36,8 +36,7 @@ const getAdminLocalizedContent = async (req, res, next) => {
     const total = countResult[0].total;
     
     // Get paginated results
-    query += ' ORDER BY content_key ASC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), offset);
+    query += ' ORDER BY content_key ASC LIMIT ' + Number(limit) + ' OFFSET ' + Number(offset);
     
     const content = await executeQuery(query, params);
     

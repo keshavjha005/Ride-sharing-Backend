@@ -7,7 +7,7 @@ import { RefreshCw, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
-  const { admin } = useAuth();
+  const { admin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [layout, setLayout] = useState(null);
@@ -22,19 +22,12 @@ const AdminDashboard = () => {
         api.get('/api/admin/dashboard/analytics?period=7d')
       ]);
 
-      console.log('🔍 Overview Response:', overviewResponse.data);
-      console.log('🔍 Analytics Response:', analyticsResponse.data);
-
       const dashboardData = {
         stats: overviewResponse.data.data.stats,
         recentActivity: overviewResponse.data.data.recentActivity,
         analytics: analyticsResponse.data.data,
         lastUpdated: overviewResponse.data.data.lastUpdated
       };
-      
-      console.log('📊 Dashboard data structure:', dashboardData);
-      console.log('📈 Stats data:', dashboardData.stats);
-      console.log('📋 Layout data:', overviewResponse.data.data.layout);
       
       setDashboardData(dashboardData);
       setLayout(overviewResponse.data.data.layout);
@@ -48,8 +41,10 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (!authLoading && admin) {
+      fetchDashboardData();
+    }
+  }, [authLoading, admin]);
 
   const handleRefresh = () => {
     fetchDashboardData();
@@ -59,7 +54,7 @@ const AdminDashboard = () => {
     navigate('/admin/settings');
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
@@ -67,6 +62,11 @@ const AdminDashboard = () => {
         </div>
       </div>
     );
+  }
+
+  if (!admin) {
+    navigate('/admin/login');
+    return null;
   }
 
   return (

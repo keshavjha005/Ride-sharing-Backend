@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   MoreHorizontal,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Clock
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
@@ -168,7 +169,14 @@ const UserManagement = () => {
   );
 
   const getVerificationBadge = (status) => {
-    if (!status) return <span className="text-gray-500">N/A</span>;
+    if (!status || status === 'not_verified') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 text-gray-500 border border-gray-500/30">
+          <Clock className="w-3 h-3 mr-1" />
+          Not Verified
+        </span>
+      );
+    }
     
     const badges = {
       verified: { color: 'bg-success/20 text-success border border-success/30', icon: CheckCircle },
@@ -355,8 +363,8 @@ const UserManagement = () => {
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-700">
+                users.map((user, index) => (
+                  <tr key={`${user.id}-${index}`} className="hover:bg-gray-700">
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-white">

@@ -403,7 +403,7 @@ const getRecentTransactions = async (limit = 10) => {
     LIMIT ?
   `;
   
-  const rows = await executeQuery(query, [limit]);
+  const rows = await executeQuery(query, [parseInt(limit)]);
   return rows;
 };
 
@@ -424,7 +424,7 @@ const getTopPerformingUsers = async (limit = 5) => {
     LIMIT ?
   `;
   
-  const rows = await executeQuery(query, [limit]);
+  const rows = await executeQuery(query, [parseInt(limit)]);
   return rows;
 };
 
@@ -480,7 +480,7 @@ const getDailyRevenue = async (start, end, limit, offset) => {
     LIMIT ? OFFSET ?
   `;
   
-  const rows = await executeQuery(query, [start.toDate(), end.toDate(), limit, offset]);
+  const rows = await executeQuery(query, [start.toDate(), end.toDate(), parseInt(limit), parseInt(offset)]);
   return rows;
 };
 
@@ -501,7 +501,7 @@ const getHourlyRevenue = async (start, end, limit, offset) => {
     LIMIT ? OFFSET ?
   `;
   
-  const rows = await executeQuery(query, [start.toDate(), end.toDate(), limit, offset]);
+  const rows = await executeQuery(query, [start.toDate(), end.toDate(), parseInt(limit), parseInt(offset)]);
   return rows;
 };
 
@@ -522,7 +522,7 @@ const getWeeklyRevenue = async (start, end, limit, offset) => {
     LIMIT ? OFFSET ?
   `;
   
-  const rows = await executeQuery(query, [start.toDate(), end.toDate(), limit, offset]);
+  const rows = await executeQuery(query, [start.toDate(), end.toDate(), parseInt(limit), parseInt(offset)]);
   return rows;
 };
 
@@ -543,7 +543,7 @@ const getMonthlyRevenue = async (start, end, limit, offset) => {
     LIMIT ? OFFSET ?
   `;
   
-  const rows = await executeQuery(query, [start.toDate(), end.toDate(), limit, offset]);
+  const rows = await executeQuery(query, [start.toDate(), end.toDate(), parseInt(limit), parseInt(offset)]);
   return rows;
 };
 
@@ -572,7 +572,7 @@ const getTransactionsWithFilters = async (start, end, type, status, limit, offse
   }
   
   query += ' ORDER BY wt.created_at DESC LIMIT ? OFFSET ?';
-  values.push(limit, offset);
+  values.push(parseInt(limit), parseInt(offset));
   
   const rows = await executeQuery(query, values);
   return rows;

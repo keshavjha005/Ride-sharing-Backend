@@ -188,6 +188,34 @@ class PricingEvent {
   }
 
   /**
+   * Find all currently active pricing events for dashboard
+   * @returns {Promise<PricingEvent[]>}
+   */
+  static async findActiveEventsForDashboard() {
+    try {
+      const currentDate = new Date();
+      const query = `
+        SELECT * FROM pricing_events 
+        WHERE is_active = true 
+        AND start_date <= ? 
+        AND end_date >= ?
+        ORDER BY created_at DESC
+      `;
+
+      const rows = await executeQuery(query, [currentDate, currentDate]);
+
+      return rows.map(row => new PricingEvent({
+        ...row,
+        affected_vehicle_types: Array.isArray(row.affected_vehicle_types) ? row.affected_vehicle_types : JSON.parse(row.affected_vehicle_types || '[]'),
+        affected_areas: Array.isArray(row.affected_areas) ? row.affected_areas : JSON.parse(row.affected_areas || '[]')
+      }));
+    } catch (error) {
+      logger.error('Error finding active pricing events for dashboard:', error);
+      throw new Error(`Failed to find active pricing events for dashboard: ${error.message}`);
+    }
+  }
+
+  /**
    * Update pricing event
    * @param {string} id - Event ID
    * @param {Object} updates - Update data

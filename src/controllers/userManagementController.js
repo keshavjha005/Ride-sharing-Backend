@@ -44,7 +44,7 @@ class UserManagementController {
 
       // Verification status filter
       if (verification_status) {
-        whereClause += ' AND ua.verification_status = ?';
+        whereClause += ' AND COALESCE(uvs.overall_status, ua.verification_status, "not_verified") = ?';
         params.push(verification_status);
       }
 
@@ -63,7 +63,7 @@ class UserManagementController {
       const offset = (parseInt(page) - 1) * parseInt(limit);
       params.push(parseInt(limit), offset);
 
-      // Get users with analytics
+      // Get users with analytics and verification status
       const rows = await db.executeQuery(`
         SELECT 
           u.*,
@@ -71,11 +71,15 @@ class UserManagementController {
           ua.total_spent,
           ua.average_rating,
           ua.last_activity,
-          ua.verification_status,
+          COALESCE(uvs.overall_status, ua.verification_status, 'not_verified') as verification_status,
           ua.risk_score,
+          uvs.documents_submitted,
+          uvs.documents_approved,
+          uvs.documents_rejected,
           (SELECT COUNT(*) FROM user_reports WHERE reported_user_id = u.id) as report_count
         FROM users u
         LEFT JOIN user_analytics ua ON u.id = ua.user_id
+        LEFT JOIN user_verification_status uvs ON u.id = uvs.user_id
         ${whereClause}
         ORDER BY ${sort_by} ${sort_order}
         LIMIT ${parseInt(limit)} OFFSET ${offset}
@@ -86,6 +90,7 @@ class UserManagementController {
         SELECT COUNT(*) as total
         FROM users u
         LEFT JOIN user_analytics ua ON u.id = ua.user_id
+        LEFT JOIN user_verification_status uvs ON u.id = uvs.user_id
         ${whereClause}
       `, params.slice(0, -2));
 
@@ -118,7 +123,7 @@ class UserManagementController {
     try {
       const { id } = req.params;
 
-      // Get user with analytics
+      // Get user with analytics and verification status
       const userRows = await db.executeQuery(`
         SELECT 
           u.*,
@@ -126,11 +131,18 @@ class UserManagementController {
           ua.total_spent,
           ua.average_rating,
           ua.last_activity,
-          ua.verification_status,
+          COALESCE(uvs.overall_status, ua.verification_status, 'not_verified') as verification_status,
           ua.risk_score,
-          ua.registration_date
+          ua.registration_date,
+          uvs.documents_submitted,
+          uvs.documents_approved,
+          uvs.documents_rejected,
+          uvs.last_submission_date,
+          uvs.verification_date,
+          uvs.rejection_reason
         FROM users u
         LEFT JOIN user_analytics ua ON u.id = ua.user_id
+        LEFT JOIN user_verification_status uvs ON u.id = uvs.user_id
         WHERE u.id = ? AND u.is_deleted IS NULL
       `, [id]);
 
@@ -306,7 +318,13 @@ class UserManagementController {
         });
       }
 
-      // Update verification status
+      // Import UserVerificationStatus
+      const UserVerificationStatus = require('../models/UserVerificationStatus');
+
+      // Update verification status in user_verification_status table
+      await UserVerificationStatus.updateOverallStatus(id, verification_status, req.user.id);
+
+      // Also update user_analytics table for backward compatibility
       await UserAnalytics.update(id, { verification_status });
 
       res.json({

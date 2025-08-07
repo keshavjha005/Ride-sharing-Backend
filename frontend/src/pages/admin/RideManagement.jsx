@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Car, 
   Search, 
@@ -25,6 +26,7 @@ import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
 
 const RideManagement = () => {
+  const navigate = useNavigate();
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -52,39 +54,35 @@ const RideManagement = () => {
   const fetchRides = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
+      
+      let endpoint = '/api/admin/rides';
+      let params = new URLSearchParams({
         page: pagination.page,
         limit: pagination.limit,
         ...filters
       });
 
-      let endpoint = '/api/admin/rides';
+      // For status-specific tabs, we need to handle filtering differently
       if (activeTab === 'active') {
-        endpoint = '/api/admin/rides/active';
+        // Use the main endpoint with status filter set to 'started'
+        params.set('status', 'started');
       } else if (activeTab === 'completed') {
-        endpoint = '/api/admin/rides/completed';
+        // Use the main endpoint with status filter set to 'completed'
+        params.set('status', 'completed');
       } else if (activeTab === 'cancelled') {
-        endpoint = '/api/admin/rides/cancelled';
+        // Use the main endpoint with status filter set to 'cancelled'
+        params.set('status', 'cancelled');
       }
 
-              const response = await api.get(`${endpoint}?${params}`);
+      const response = await api.get(`${endpoint}?${params}`);
       
       if (response.data.success) {
-        if (activeTab === 'all') {
-          setRides(response.data.data.data);
-          setPagination(prev => ({
-            ...prev,
-            total: response.data.data.pagination.total,
-            totalPages: response.data.data.pagination.totalPages
-          }));
-        } else {
-          setRides(response.data.data);
-          setPagination(prev => ({
-            ...prev,
-            total: response.data.data.length,
-            totalPages: 1
-          }));
-        }
+        setRides(response.data.data.data);
+        setPagination(prev => ({
+          ...prev,
+          total: response.data.data.pagination.total,
+          totalPages: response.data.data.pagination.totalPages
+        }));
       }
     } catch (error) {
       console.error('Error fetching rides:', error);
@@ -106,6 +104,11 @@ const RideManagement = () => {
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setPagination(prev => ({ ...prev, page: 1 }));
+    
+    // Clear status filter when switching to "All Rides" tab to avoid conflicts
+    if (tab === 'all') {
+      setFilters(prev => ({ ...prev, status: '' }));
+    }
   };
 
   const handleRideAction = async (rideId, action, data = {}) => {
@@ -465,7 +468,7 @@ const RideManagement = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => window.location.href = `/admin/rides/${ride.ride_id || ride.id}`}
+                          onClick={() => navigate(`/admin/rides/${ride.ride_id || ride.id}`)}
                           className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
                           title="View Details"
                         >

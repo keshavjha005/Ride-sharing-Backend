@@ -14,6 +14,8 @@ const createPricingTables = require('./migrations/create_pricing_tables');
 const createPricingEventsTables = require('./migrations/create_pricing_events_tables');
 const createWithdrawalTables = require('./migrations/create_withdrawal_tables');
 const createAdminTables = require('./migrations/create_admin_tables');
+const createDocumentVerificationTables = require('./migrations/create_document_verification_tables');
+const createUserManagementTables = require('./migrations/create_user_management_tables');
 
 // Migration registry
 const migrations = [
@@ -76,6 +78,16 @@ const migrations = [
     name: 'create_admin_tables',
     migration: createAdminTables,
     description: 'Create admin management system tables'
+  },
+  {
+    name: 'create_document_verification_tables',
+    migration: createDocumentVerificationTables,
+    description: 'Create document verification system tables'
+  },
+  {
+    name: 'create_user_management_tables',
+    migration: createUserManagementTables,
+    description: 'Create user management and reporting system tables'
   }
 ];
 

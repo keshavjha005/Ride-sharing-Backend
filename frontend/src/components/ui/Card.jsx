@@ -2,7 +2,7 @@ import React from 'react';
 
 const Card = ({ children, className = '', ...props }) => {
   return (
-    <div className={`rounded-lg border bg-background-secondary ${className}`} {...props}>
+    <div className={`rounded-lg border border-border bg-background-secondary shadow-card ${className}`} {...props}>
       {children}
     </div>
   );
@@ -18,7 +18,7 @@ const CardHeader = ({ children, className = '', ...props }) => {
 
 const CardTitle = ({ children, className = '', ...props }) => {
   return (
-    <h3 className={`text-2xl font-semibold leading-none tracking-tight ${className}`} {...props}>
+    <h3 className={`text-2xl font-semibold leading-none tracking-tight text-text-primary ${className}`} {...props}>
       {children}
     </h3>
   );
@@ -26,7 +26,7 @@ const CardTitle = ({ children, className = '', ...props }) => {
 
 const CardDescription = ({ children, className = '', ...props }) => {
   return (
-    <p className={`text-sm text-muted-foreground ${className}`} {...props}>
+    <p className={`text-sm text-text-muted ${className}`} {...props}>
       {children}
     </p>
   );

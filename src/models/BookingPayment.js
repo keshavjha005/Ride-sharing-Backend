@@ -73,6 +73,8 @@ class BookingPayment {
       const row = rows[0];
       if (row.pricing_details) {
         row.pricing_details = JSON.parse(row.pricing_details);
+      } else {
+        row.pricing_details = {};
       }
 
       return new BookingPayment(row);
@@ -100,6 +102,8 @@ class BookingPayment {
       return rows.map(row => {
         if (row.pricing_details) {
           row.pricing_details = JSON.parse(row.pricing_details);
+        } else {
+          row.pricing_details = {};
         }
         return new BookingPayment(row);
       });
@@ -139,6 +143,8 @@ class BookingPayment {
       const payments = rows.map(row => {
         if (row.pricing_details) {
           row.pricing_details = JSON.parse(row.pricing_details);
+        } else {
+          row.pricing_details = {};
         }
         return new BookingPayment(row);
       });

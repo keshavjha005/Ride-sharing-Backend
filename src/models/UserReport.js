@@ -6,6 +6,8 @@ class UserReport {
    */
   static async findById(id) {
     try {
+      console.log('UserReport.findById called with ID:', id);
+      
       const [rows] = await db.executeQuery(`
         SELECT 
           ur.*,
@@ -24,6 +26,9 @@ class UserReport {
         LEFT JOIN admin_users admin ON ur.resolved_by = admin.id
         WHERE ur.id = ?
       `, [id]);
+      
+      console.log('Query result rows:', rows);
+      console.log('First row:', rows[0]);
       
       return rows[0] || null;
     } catch (error) {
@@ -84,6 +89,33 @@ class UserReport {
       return result.affectedRows > 0;
     } catch (error) {
       console.error('Error updating report status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update admin notes
+   */
+  static async updateAdminNotes(id, adminNotes, adminId) {
+    try {
+      const updateData = {
+        admin_notes: adminNotes,
+        updated_at: new Date()
+      };
+
+      const fields = Object.keys(updateData).map(key => `${key} = ?`).join(', ');
+      const values = Object.values(updateData);
+      values.push(id);
+
+      const [result] = await db.executeQuery(`
+        UPDATE user_reports 
+        SET ${fields}
+        WHERE id = ?
+      `, values);
+
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Error updating admin notes:', error);
       throw error;
     }
   }

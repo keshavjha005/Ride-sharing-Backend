@@ -1,7 +1,7 @@
 const request = require('supertest');
 const app = require('../src/app');
 const { executeQuery } = require('../src/config/database');
-const { generateToken } = require('../src/utils/jwt');
+const { generateAccessToken } = require('../src/utils/jwt');
 
 describe('Pricing System API', () => {
   let authToken;
@@ -14,7 +14,7 @@ describe('Pricing System API', () => {
       email: 'test@example.com',
       name: 'Test User'
     };
-    authToken = generateToken(testUser);
+    authToken = generateAccessToken(testUser);
 
     // Get a vehicle type ID for testing
     const vehicleTypes = await executeQuery('SELECT id FROM vehicle_types LIMIT 1');
@@ -301,6 +301,35 @@ describe('Pricing System API', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveProperty('pagination');
+    });
+  });
+
+
+
+  describe('PricingService.getRecentPricingCalculations', () => {
+    it('should get recent pricing calculations without LIMIT parameter error', async () => {
+      const PricingService = require('../src/services/pricingService');
+      
+      // This test specifically checks that the LIMIT parameter issue is fixed
+      const result = await PricingService.getRecentPricingCalculations({ limit: 5 });
+      
+      expect(result.success).toBe(true);
+      expect(Array.isArray(result.data)).toBe(true);
+      expect(result).toHaveProperty('pagination');
+      expect(result.pagination).toHaveProperty('limit');
+      expect(result.pagination.limit).toBe(5);
+    });
+
+    it('should handle different limit values correctly', async () => {
+      const PricingService = require('../src/services/pricingService');
+      
+      const result = await PricingService.getRecentPricingCalculations({ limit: 10 });
+      
+      expect(result.success).toBe(true);
+      expect(Array.isArray(result.data)).toBe(true);
+      expect(result).toHaveProperty('pagination');
+      expect(result.pagination).toHaveProperty('limit');
+      expect(result.pagination.limit).toBe(10);
     });
   });
 

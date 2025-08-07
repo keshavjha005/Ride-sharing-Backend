@@ -10,7 +10,10 @@ import {
   FileText,
   Shield,
   LogOut,
-  Cog
+  Cog,
+  CheckSquare,
+  DollarSign,
+  Truck
 } from 'lucide-react'
 import { useAuth } from '../../utils/AuthContext'
 
@@ -34,6 +37,11 @@ const Sidebar = () => {
       label: 'User Management'
     },
     {
+      path: '/admin/document-verification',
+      icon: CheckSquare,
+      label: 'Document Verification'
+    },
+    {
       path: '/admin/rides',
       icon: Car,
       label: 'Ride Management'
@@ -41,17 +49,32 @@ const Sidebar = () => {
     {
       path: '/admin/analytics',
       icon: BarChart3,
-      label: 'Analytics'
+      label: 'Live Analytics'
     },
     {
       path: '/admin/reports',
       icon: FileText,
-      label: 'Reports'
+      label: 'Scheduled Reports'
+    },
+    {
+      path: '/admin/user-reports',
+      icon: FileText,
+      label: 'User Reports'
     },
     {
       path: '/admin/localization',
       icon: Globe,
       label: 'Localization'
+    },
+    {
+      path: '/admin/pricing',
+      icon: DollarSign,
+      label: 'Pricing Management'
+    },
+    {
+      path: '/admin/vehicles',
+      icon: Truck,
+      label: 'Vehicle Management'
     },
     {
       path: '/admin/admin-management',
@@ -67,9 +90,9 @@ const Sidebar = () => {
   ]
 
   return (
-    <div className="w-64 bg-background-secondary border-r border-border flex flex-col">
+    <div className="w-64 bg-background-secondary border-r border-border flex flex-col h-screen fixed">
       {/* Logo */}
-      <div className="p-6 border-b border-border">
+      <div className="p-6 border-b border-border shrink-0">
         <div className="flex items-center">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-3">
             <Car className="w-5 h-5 text-white" />
@@ -79,7 +102,7 @@ const Sidebar = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-2">
           {navItems.map((item) => {
             // Check if item requires super admin and current user is not super admin

@@ -109,7 +109,7 @@ class ChatRoom {
         LIMIT ? OFFSET ?
       `;
 
-      const rooms = await executeQuery(query, [userId, limit, offset]);
+      const rooms = await executeQuery(query, [userId, parseInt(limit), parseInt(offset)]);
       return rooms;
     } catch (error) {
       logger.error('Error finding chat rooms by user ID:', error);

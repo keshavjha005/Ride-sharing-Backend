@@ -49,9 +49,13 @@ class UserReportsController {
   static async getReportById(req, res) {
     try {
       const { id } = req.params;
+      console.log('Looking for report with ID:', id);
 
       const report = await UserReport.findById(id);
+      console.log('Report found:', report);
+      
       if (!report) {
+        console.log('Report not found for ID:', id);
         return res.status(404).json({
           success: false,
           message: 'Report not found'
@@ -178,6 +182,48 @@ class UserReportsController {
       res.status(500).json({
         success: false,
         message: 'Error updating report status'
+      });
+    }
+  }
+
+  /**
+   * Update admin notes
+   */
+  static async updateAdminNotes(req, res) {
+    try {
+      const { id } = req.params;
+      const { admin_notes } = req.body;
+      const adminId = req.admin.id;
+
+      // Check if report exists
+      const report = await UserReport.findById(id);
+      if (!report) {
+        return res.status(404).json({
+          success: false,
+          message: 'Report not found'
+        });
+      }
+
+      // Update admin notes
+      const updated = await UserReport.updateAdminNotes(id, admin_notes, adminId);
+
+      if (updated) {
+        res.json({
+          success: true,
+          message: 'Admin notes updated successfully'
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: 'Failed to update admin notes'
+        });
+      }
+
+    } catch (error) {
+      console.error('Error updating admin notes:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error updating admin notes'
       });
     }
   }

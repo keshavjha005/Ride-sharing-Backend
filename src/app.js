@@ -41,6 +41,7 @@ const pricingRoutes = require('./routes/pricing');
 const transactionRoutes = require('./routes/transactions');
 const withdrawalRoutes = require('./routes/withdrawals');
 const adminRoutes = require('./routes/admin');
+const verificationRoutes = require('./routes/verification');
 
 // Create Express app
 const app = express();
@@ -69,7 +70,7 @@ app.use(cors({
 }));
 
 // Compression middleware
-if (config.enableCompression) {
+if (config.features.enableCompression) {
   app.use(compression());
 }
 
@@ -78,24 +79,43 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging middleware
-if (config.enableLogging) {
+if (config.features.enableLogging) {
   app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 }
 
 // Rate limiting
-if (config.enableRateLimiting) {
-  const limiter = rateLimit({
-    windowMs: config.rateLimit.windowMs,
-    max: config.rateLimit.maxRequests,
+if (config.features.enableRateLimiting) {
+  const isDevelopment = config.server.environment === 'development';
+  
+  // Different rate limits for different route types
+  const createLimiter = (maxRequests, windowMs = 900000) => rateLimit({
+    windowMs: windowMs,
+    max: maxRequests,
     message: {
       error: 'Too many requests from this IP, please try again later.',
-      retryAfter: Math.ceil(config.rateLimit.windowMs / 1000),
+      retryAfter: Math.ceil(windowMs / 1000),
     },
     standardHeaders: true,
     legacyHeaders: false,
   });
+
+  // Admin auth routes - more lenient in development
+  const adminAuthLimiter = createLimiter(
+    isDevelopment ? 100 : 50, // 100 requests per 15 minutes in dev, 50 in prod
+    900000 // 15 minutes
+  );
   
-  app.use('/api/', limiter);
+  // General API routes
+  const generalLimiter = createLimiter(
+    isDevelopment ? 1000 : config.rateLimit.maxRequests,
+    config.rateLimit.windowMs
+  );
+  
+  // Apply specific rate limiting for admin auth routes
+  app.use('/api/admin/auth/', adminAuthLimiter);
+  
+  // Apply general rate limiting to all other API routes
+  app.use('/api/', generalLimiter);
 }
 
 // Health check endpoint
@@ -143,6 +163,7 @@ app.use('/api/pricing', pricingRoutes);
 app.use('/api', transactionRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/verification', verificationRoutes);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

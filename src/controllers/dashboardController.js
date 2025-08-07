@@ -1,6 +1,6 @@
 const DashboardWidget = require('../models/DashboardWidget');
 const DashboardLayout = require('../models/DashboardLayout');
-const db = require('../config/database');
+const { executeQuery } = require('../config/database');
 
 console.log('🔄 DashboardController loaded - using ride_analytics table for ride data');
 
@@ -95,7 +95,7 @@ class DashboardController {
             
             // Get total users with verification status
             console.log('🔍 Querying users table...');
-            const totalUsersResult = await db.executeQuery(`
+            const totalUsersResult = await executeQuery(`
                 SELECT 
                     COUNT(*) as total_users,
                     COUNT(CASE WHEN is_verified = 1 THEN 1 END) as verified_users,
@@ -109,7 +109,7 @@ class DashboardController {
 
             // Get ride statistics from ride_analytics table (like Ride Management uses)
             console.log('🔍 Querying ride_analytics table...');
-            const rideAnalyticsResult = await db.executeQuery(`
+            const rideAnalyticsResult = await executeQuery(`
                 SELECT 
                     COUNT(*) as total_rides,
                     COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed_rides,
@@ -124,7 +124,7 @@ class DashboardController {
             console.log('🚗 Ride stats:', rideStats);
 
             // Get revenue statistics from payment_transactions
-            const revenueResult = await db.executeQuery(`
+            const revenueResult = await executeQuery(`
                 SELECT 
                     COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN amount END), 0) as today_revenue,
                     COALESCE(SUM(CASE WHEN status = 'completed' THEN amount END), 0) as total_revenue,
@@ -136,7 +136,7 @@ class DashboardController {
             const revenueStats = revenueResult && revenueResult[0] ? revenueResult[0] : { today_revenue: 0, total_revenue: 0, today_completed_revenue: 0, today_transactions: 0, total_completed_transactions: 0 };
 
             // Get user analytics summary
-            const userAnalyticsResult = await db.executeQuery(`
+            const userAnalyticsResult = await executeQuery(`
                 SELECT 
                     COUNT(*) as total_analytics_users,
                     AVG(total_rides) as avg_rides_per_user,
@@ -149,7 +149,7 @@ class DashboardController {
             const userAnalytics = userAnalyticsResult && userAnalyticsResult[0] ? userAnalyticsResult[0] : { total_analytics_users: 0, avg_rides_per_user: 0, avg_spent_per_user: 0, avg_user_rating: 0, verified_analytics_users: 0, pending_analytics_users: 0 };
 
             // Get ride analytics summary from ride_analytics table
-            const rideAnalyticsSummaryResult = await db.executeQuery(`
+            const rideAnalyticsSummaryResult = await executeQuery(`
                 SELECT 
                     COUNT(*) as total_analytics_rides,
                     AVG(distance_km) as avg_distance,
@@ -164,7 +164,7 @@ class DashboardController {
             const rideAnalytics = rideAnalyticsSummaryResult && rideAnalyticsSummaryResult[0] ? rideAnalyticsSummaryResult[0] : { total_analytics_rides: 0, avg_distance: 0, avg_duration: 0, avg_fare: 0, avg_commission: 0, avg_ride_rating: 0, completed_analytics_rides: 0, cancelled_analytics_rides: 0 };
 
             // Get today's statistics
-            const todayStatsResult = await db.executeQuery(`
+            const todayStatsResult = await executeQuery(`
                 SELECT 
                     COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as new_users_today,
                     COUNT(CASE WHEN DATE(created_at) = CURDATE() AND is_verified = 1 THEN 1 END) as verified_users_today
@@ -174,7 +174,7 @@ class DashboardController {
             const todayStats = todayStatsResult && todayStatsResult[0] ? todayStatsResult[0] : { new_users_today: 0, verified_users_today: 0 };
 
             // Get today's ride statistics from ride_analytics
-            const todayRidesResult = await db.executeQuery(`
+            const todayRidesResult = await executeQuery(`
                 SELECT 
                     COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as rides_today,
                     COUNT(CASE WHEN DATE(created_at) = CURDATE() AND status = 'completed' THEN 1 END) as completed_rides_today,
@@ -262,7 +262,7 @@ class DashboardController {
     static async getRecentActivity(limit = 15) {
         try {
             // Get recent user registrations with analytics data
-            const recentUsers = await db.executeQuery(`
+            const recentUsers = await executeQuery(`
                 SELECT 
                     u.id, 
                     u.email, 
@@ -282,7 +282,7 @@ class DashboardController {
             `);
 
             // Get recent rides with analytics data from ride_analytics table
-            const recentRides = await db.executeQuery(`
+            const recentRides = await executeQuery(`
                 SELECT 
                     ra.ride_id as id, 
                     ra.status, 
@@ -300,7 +300,7 @@ class DashboardController {
             `);
 
             // Get recent payments with more details
-            const recentPayments = await db.executeQuery(`
+            const recentPayments = await executeQuery(`
                 SELECT 
                     id, 
                     amount, 
@@ -313,7 +313,7 @@ class DashboardController {
             `);
 
             // Get recent user analytics updates
-            const recentAnalytics = await db.executeQuery(`
+            const recentAnalytics = await executeQuery(`
                 SELECT 
                     ua.id,
                     u.email,
@@ -424,7 +424,7 @@ class DashboardController {
                     dateFilter = 'DATE(u.created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
             }
 
-            const rows = await db.executeQuery(`
+            const rows = await executeQuery(`
                 SELECT 
                     DATE(u.created_at) as date,
                     COUNT(*) as new_users,
@@ -469,7 +469,7 @@ class DashboardController {
                     dateFilter = 'DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
             }
 
-            const rows = await db.executeQuery(`
+            const rows = await executeQuery(`
                 SELECT 
                     DATE(created_at) as date,
                     SUM(amount) as daily_revenue,
@@ -515,7 +515,7 @@ class DashboardController {
                     dateFilter = 'DATE(ra.created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
             }
 
-            const rows = await db.executeQuery(`
+            const rows = await executeQuery(`
                 SELECT 
                     ra.status,
                     COUNT(*) as count,

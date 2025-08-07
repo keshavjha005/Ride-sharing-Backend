@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   AlertTriangle, 
   Search, 
@@ -17,6 +18,7 @@ import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
 
 const UserReports = () => {
+  const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -451,7 +453,7 @@ const UserReports = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => window.location.href = `/admin/user-reports/${report.id}`}
+                          onClick={() => navigate(`/admin/user-reports/${report.id}`)}
                           className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
                           title="View Details"
                         >

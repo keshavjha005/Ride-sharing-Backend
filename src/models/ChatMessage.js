@@ -130,7 +130,7 @@ class ChatMessage {
         LIMIT ? OFFSET ?
       `;
 
-      const messages = await executeQuery(query, [senderId, limit, offset]);
+      const messages = await executeQuery(query, [senderId, parseInt(limit), parseInt(offset)]);
       return messages;
     } catch (error) {
       logger.error('Error finding chat messages by sender ID:', error);
@@ -316,7 +316,7 @@ class ChatMessage {
       `;
 
       const searchPattern = `%${searchTerm}%`;
-      const messages = await executeQuery(query, [roomId, searchPattern, searchPattern, searchPattern, limit, offset]);
+      const messages = await executeQuery(query, [roomId, searchPattern, searchPattern, searchPattern, parseInt(limit), parseInt(offset)]);
       return messages;
     } catch (error) {
       logger.error('Error searching chat messages:', error);

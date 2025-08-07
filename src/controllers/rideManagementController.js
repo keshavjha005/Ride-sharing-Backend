@@ -64,22 +64,101 @@ class RideManagementController {
         });
       }
 
-      // Get ride details (if rides table exists)
+      // Get ride details with user and location information
       let rideDetails = null;
+      let users = [];
+      let locations = [];
+      
       try {
+        // Get ride details from rides table
         const rideRows = await db.executeQuery(`
-          SELECT * FROM rides WHERE id = ?
+          SELECT r.*, 
+                 u.name as creator_name, u.email as creator_email, u.phone as creator_phone,
+                 uvi.vehicle_number, uvi.vehicle_color, uvi.vehicle_year,
+                 vb.name as vehicle_brand, vm.name as vehicle_model,
+                 vt.name as vehicle_type
+          FROM rides r
+          LEFT JOIN users u ON r.created_by = u.id
+          LEFT JOIN user_vehicle_information uvi ON r.vehicle_information_id = uvi.id
+          LEFT JOIN vehicle_brands vb ON uvi.vehicle_brand_id = vb.id
+          LEFT JOIN vehicle_models vm ON uvi.vehicle_model_id = vm.id
+          LEFT JOIN vehicle_types vt ON uvi.vehicle_type_id = vt.id
+          WHERE r.id = ? AND u.is_deleted = 0
         `, [id]);
+        
         rideDetails = rideRows[0] || null;
+
+        if (rideDetails) {
+          // Get ride locations
+          const locationRows = await db.executeQuery(`
+            SELECT * FROM ride_locations 
+            WHERE ride_id = ? 
+            ORDER BY location_type, sequence_order
+          `, [id]);
+          locations = locationRows;
+
+          // Get all users who booked this ride (multiple users can book)
+          const bookingRows = await db.executeQuery(`
+            SELECT b.*, 
+                   u.name as user_name, u.email as user_email, u.phone as user_phone,
+                   u.id as user_id
+            FROM bookings b
+            LEFT JOIN users u ON b.user_id = u.id
+            WHERE b.ride_id = ? AND u.is_deleted = 0
+            ORDER BY b.created_at DESC
+          `, [id]);
+          users = bookingRows;
+
+          // Add creator as a user if not already in the list
+          const creatorExists = users.some(user => user.user_id === rideDetails.created_by);
+          if (!creatorExists && rideDetails.created_by) {
+            users.unshift({
+              user_id: rideDetails.created_by,
+              user_name: rideDetails.creator_name,
+              user_email: rideDetails.creator_email,
+              user_phone: rideDetails.creator_phone,
+              booked_seats: rideDetails.total_seats,
+              status: 'confirmed',
+              role: 'driver'
+            });
+          }
+        }
       } catch (error) {
-        console.log('Rides table not available');
+        console.log('Error fetching ride details:', error);
+        // Fallback to sample data if tables don't exist
         rideDetails = {
           id: id,
-          pickup_location: 'Sample Pickup',
-          dropoff_location: 'Sample Dropoff',
+          pickup_location: 'Sample Pickup Location',
+          dropoff_location: 'Sample Dropoff Location',
           user_id: 'sample-user-id',
-          driver_id: 'sample-driver-id'
+          driver_id: 'sample-driver-id',
+          creator_name: 'Sample Driver',
+          creator_email: 'driver@example.com'
         };
+        users = [
+          {
+            user_id: 'sample-user-id',
+            user_name: 'Sample Passenger',
+            user_email: 'passenger@example.com',
+            booked_seats: 1,
+            status: 'confirmed',
+            role: 'passenger'
+          }
+        ];
+        locations = [
+          {
+            location_type: 'pickup',
+            address: 'Sample Pickup Location',
+            latitude: 0,
+            longitude: 0
+          },
+          {
+            location_type: 'drop',
+            address: 'Sample Dropoff Location',
+            latitude: 0,
+            longitude: 0
+          }
+        ];
       }
 
       // Get ride disputes
@@ -90,6 +169,8 @@ class RideManagementController {
         data: {
           analytics,
           rideDetails,
+          users,
+          locations,
           disputes
         }
       });

@@ -68,6 +68,8 @@ class WithdrawalRequest {
       const data = rows[0];
       if (data.account_details) {
         data.account_details = JSON.parse(data.account_details);
+      } else {
+        data.account_details = {};
       }
 
       return new WithdrawalRequest(data);
@@ -107,6 +109,8 @@ class WithdrawalRequest {
       const withdrawalRequests = rows.map(row => {
         if (row.account_details) {
           row.account_details = JSON.parse(row.account_details);
+        } else {
+          row.account_details = {};
         }
         return new WithdrawalRequest(row);
       });
@@ -183,6 +187,8 @@ class WithdrawalRequest {
       const withdrawalRequests = rows.map(row => {
         if (row.account_details) {
           row.account_details = JSON.parse(row.account_details);
+        } else {
+          row.account_details = {};
         }
         return new WithdrawalRequest(row);
       });

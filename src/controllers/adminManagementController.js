@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const AdminUser = require('../models/AdminUser');
 const config = require('../config');
+const { executeQuery } = require('../config/database');
 
 class AdminManagementController {
     /**
@@ -10,7 +11,6 @@ class AdminManagementController {
     static async getAdmins(req, res) {
         try {
             const { page = 1, limit = 10, role, is_active, search } = req.query;
-            const db = require('../config/database');
             
             // Build WHERE clause
             let whereClause = 'WHERE 1=1';
@@ -32,7 +32,7 @@ class AdminManagementController {
 
             // Get total count
             const countQuery = `SELECT COUNT(*) as total FROM admin_users ${whereClause}`;
-            const countResult = await db.executeQuery(countQuery, whereValues);
+            const countResult = await executeQuery(countQuery, whereValues);
             const total = countResult[0].total;
 
             // Calculate pagination
@@ -46,7 +46,7 @@ class AdminManagementController {
 
             // Get admins with pagination
             const query = `SELECT * FROM admin_users ${whereClause} ORDER BY created_at DESC LIMIT ${parseInt(limit)} OFFSET ${offset}`;
-            const admins = await db.executeQuery(query, whereValues);
+            const admins = await executeQuery(query, whereValues);
 
             res.json({
                 success: true,

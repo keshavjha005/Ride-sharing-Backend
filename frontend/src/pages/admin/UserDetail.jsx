@@ -112,6 +112,15 @@ const UserDetail = () => {
   );
 
   const getVerificationBadge = (status) => {
+    if (!status || status === 'not_verified') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 text-gray-500 border border-gray-500/30">
+          <Clock className="w-3 h-3" />
+          Not Verified
+        </span>
+      );
+    }
+
     const statusConfig = {
       verified: { color: 'bg-success/20 text-success border border-success/30', icon: CheckCircle },
       pending: { color: 'bg-warning/20 text-warning border border-warning/30', icon: Clock },
@@ -124,7 +133,7 @@ const UserDetail = () => {
     return (
       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
         <Icon className="w-3 h-3" />
-        {status || 'pending'}
+        {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     );
   };

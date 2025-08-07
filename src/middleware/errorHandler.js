@@ -49,9 +49,10 @@ class ConflictError extends AppError {
 }
 
 class RateLimitError extends AppError {
-  constructor(message = 'Too many requests') {
+  constructor(message = 'Too many requests', retryAfter = null) {
     super(message, 429);
     this.name = 'RateLimitError';
+    this.retryAfter = retryAfter;
   }
 }
 

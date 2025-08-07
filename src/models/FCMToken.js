@@ -375,7 +375,7 @@ class FCMToken {
         LIMIT ?
       `;
       
-      const results = await executeQuery(query, [limit]);
+      const results = await executeQuery(query, [parseInt(limit)]);
       return results.map(token => new FCMToken(token));
     } catch (error) {
       logger.error('Error finding all active FCM tokens:', error);
