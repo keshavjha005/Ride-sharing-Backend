@@ -9,7 +9,8 @@ import {
   Globe, 
   FileText,
   Shield,
-  LogOut
+  LogOut,
+  Cog
 } from 'lucide-react'
 import { useAuth } from '../../utils/AuthContext'
 
@@ -54,8 +55,8 @@ const Sidebar = () => {
     },
     {
       path: '/admin/settings',
-      icon: Settings,
-      label: 'System Settings'
+      icon: Cog,
+      label: 'System Configuration'
     },
     {
       path: '/admin/security',

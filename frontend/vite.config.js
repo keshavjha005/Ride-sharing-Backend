@@ -17,5 +17,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+  },
+  define: {
+    __VITE_APP_VERSION__: JSON.stringify(Date.now())
+  },
+  preview: {
+    port: 3001
   }
 }) 

@@ -128,6 +128,28 @@ async function createAdminTables() {
             )
         `);
 
+        // Create translation_management table
+        await connection.execute(`
+            CREATE TABLE IF NOT EXISTS translation_management (
+                id VARCHAR(36) PRIMARY KEY,
+                source_language VARCHAR(10) NOT NULL,
+                target_language VARCHAR(10) NOT NULL,
+                content_key VARCHAR(100) NOT NULL,
+                original_text TEXT,
+                translated_text TEXT,
+                translation_status ENUM('pending', 'translated', 'reviewed', 'approved') DEFAULT 'pending',
+                translator_id VARCHAR(36),
+                reviewer_id VARCHAR(36),
+                reviewed_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (source_language) REFERENCES languages(code),
+                FOREIGN KEY (target_language) REFERENCES languages(code),
+                FOREIGN KEY (translator_id) REFERENCES admin_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (reviewer_id) REFERENCES admin_users(id) ON DELETE SET NULL
+            )
+        `);
+
         // Create system_settings table (enhanced)
         await connection.execute(`
             CREATE TABLE IF NOT EXISTS system_settings (
@@ -247,8 +269,27 @@ async function createAdminTables() {
             ('user_verified', 'تم التحقق من المستخدم', 'User Verified', 'notification', 'user_management'),
             ('ride_cancelled', 'تم إلغاء الرحلة', 'Ride Cancelled', 'notification', 'ride_management'),
             ('payment_processed', 'تم معالجة الدفع', 'Payment Processed', 'notification', 'payment'),
-            ('welcome_message', 'مرحباً بك في لوحة التحكم', 'Welcome to the Admin Panel', 'ui_text', 'dashboard')
+            ('welcome_message', 'مرحباً بك في لوحة التحكم', 'Welcome to the Admin Panel', 'ui_text', 'dashboard'),
+            ('localization_management', 'إدارة الترجمة', 'Localization Management', 'ui_text', 'admin'),
+            ('content_management', 'إدارة المحتوى', 'Content Management', 'ui_text', 'admin'),
+            ('language_settings', 'إعدادات اللغة', 'Language Settings', 'ui_text', 'admin'),
+            ('translation_workflow', 'سير عمل الترجمة', 'Translation Workflow', 'ui_text', 'admin')
         `);
+
+        // Insert sample language settings
+        await connection.execute(`
+            INSERT IGNORE INTO admin_language_settings (id, language_code, is_enabled, is_default, display_order, admin_interface_enabled, mobile_app_enabled) VALUES
+            (UUID(), 'en', true, true, 1, true, true),
+            (UUID(), 'ar', true, false, 2, true, true)
+        `);
+
+        // Insert sample translation management data
+        await connection.execute(`
+            INSERT IGNORE INTO translation_management (id, source_language, target_language, content_key, original_text, translated_text, translation_status, translator_id) VALUES
+            (UUID(), 'en', 'ar', 'new_feature', 'New feature available', 'ميزة جديدة متاحة', 'approved', ?),
+            (UUID(), 'en', 'ar', 'system_update', 'System update completed', 'تم تحديث النظام', 'translated', ?),
+            (UUID(), 'ar', 'en', 'arabic_content', 'محتوى باللغة العربية', 'Arabic content', 'pending', ?)
+        `, [adminId, adminId, adminId]);
 
         // Insert sample system settings
         await connection.execute(`
@@ -258,7 +299,22 @@ async function createAdminTables() {
             ('default_currency', 'USD', 'string', 'payment', 'العملة الافتراضية', 'Default Currency', 'العملة الافتراضية للمعاملات', 'Default currency for transactions'),
             ('max_ride_distance', '100', 'number', 'ride', 'أقصى مسافة للرحلة', 'Maximum Ride Distance', 'أقصى مسافة مسموحة للرحلة بالكيلومترات', 'Maximum allowed ride distance in kilometers'),
             ('enable_push_notifications', 'true', 'boolean', 'notification', 'تفعيل الإشعارات', 'Enable Push Notifications', 'تفعيل إشعارات الدفع للمستخدمين', 'Enable push notifications for users'),
-            ('maintenance_mode', 'false', 'boolean', 'app', 'وضع الصيانة', 'Maintenance Mode', 'تفعيل وضع الصيانة للتطبيق', 'Enable maintenance mode for the application')
+            ('maintenance_mode', 'false', 'boolean', 'app', 'وضع الصيانة', 'Maintenance Mode', 'تفعيل وضع الصيانة للتطبيق', 'Enable maintenance mode for the application'),
+            ('commission_rate', '0.15', 'number', 'payment', 'معدل العمولة', 'Commission Rate', 'معدل العمولة المطبقة على الرحلات', 'Commission rate applied to rides'),
+            ('min_withdrawal_amount', '50', 'number', 'payment', 'الحد الأدنى للسحب', 'Minimum Withdrawal Amount', 'الحد الأدنى لمبلغ السحب', 'Minimum withdrawal amount'),
+            ('max_ride_duration', '120', 'number', 'ride', 'أقصى مدة للرحلة', 'Maximum Ride Duration', 'أقصى مدة مسموحة للرحلة بالدقائق', 'Maximum allowed ride duration in minutes'),
+            ('auto_accept_rides', 'false', 'boolean', 'ride', 'قبول الرحلات تلقائياً', 'Auto Accept Rides', 'قبول الرحلات تلقائياً للسائقين', 'Automatically accept rides for drivers')
+        `);
+
+        // Insert sample feature flags
+        await connection.execute(`
+            INSERT IGNORE INTO feature_flags (feature_key, feature_name_ar, feature_name_en, description_ar, description_en, is_enabled, enabled_for_ios, enabled_for_android, enabled_for_web, rollout_percentage) VALUES
+            ('dark_mode', 'الوضع المظلم', 'Dark Mode', 'تفعيل الوضع المظلم للتطبيق', 'Enable dark mode for the application', true, true, true, true, 100),
+            ('voice_commands', 'الأوامر الصوتية', 'Voice Commands', 'تفعيل الأوامر الصوتية للتنقل', 'Enable voice commands for navigation', false, true, true, false, 25),
+            ('advanced_analytics', 'التحليلات المتقدمة', 'Advanced Analytics', 'تفعيل التحليلات المتقدمة للمستخدمين', 'Enable advanced analytics for users', true, false, false, true, 50),
+            ('multi_currency', 'العملات المتعددة', 'Multi Currency', 'دعم العملات المتعددة للمعاملات', 'Support multiple currencies for transactions', false, true, true, true, 0),
+            ('ai_pricing', 'تسعير الذكاء الاصطناعي', 'AI Pricing', 'تفعيل تسعير الذكي باستخدام الذكاء الاصطناعي', 'Enable smart pricing using artificial intelligence', false, false, false, true, 10),
+            ('social_features', 'الميزات الاجتماعية', 'Social Features', 'تفعيل الميزات الاجتماعية مثل التقييمات والمراجعات', 'Enable social features like ratings and reviews', true, true, true, true, 75)
         `);
 
         console.log('Default admin user and sample data created successfully!');
