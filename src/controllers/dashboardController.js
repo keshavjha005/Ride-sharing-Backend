@@ -374,24 +374,63 @@ class DashboardController {
      */
     static async getAnalytics(req, res) {
         try {
-            const { period = '7d' } = req.query;
+            const { period = '7d', type = 'users' } = req.query;
             
-            // Get user growth data
-            const userGrowth = await DashboardController.getUserGrowthData(period);
+            let data;
+            let startDate = new Date();
+            let endDate = new Date();
             
-            // Get revenue data
-            const revenueData = await DashboardController.getRevenueData(period);
-            
-            // Get ride statistics
-            const rideStats = await DashboardController.getRideStatistics(period);
+            switch (period) {
+                case '7d':
+                    startDate.setDate(startDate.getDate() - 7);
+                    break;
+                case '30d':
+                    startDate.setDate(startDate.getDate() - 30);
+                    break;
+                case '90d':
+                    startDate.setDate(startDate.getDate() - 90);
+                    break;
+            }
+
+            switch (type) {
+                case 'users':
+                    data = await DashboardController.getUserGrowthData(period);
+                    break;
+                case 'financial':
+                    data = await DashboardController.getRevenueData(period);
+                    break;
+                case 'rides':
+                    data = await DashboardController.getRideStatistics(period);
+                    break;
+                case 'system':
+                    // For system analytics, combine various metrics
+                    const [users, rides, revenue] = await Promise.all([
+                        DashboardController.getUserGrowthData(period),
+                        DashboardController.getRideStatistics(period),
+                        DashboardController.getRevenueData(period)
+                    ]);
+                    data = {
+                        data: users.map((user, index) => ({
+                            date: user.date,
+                            total_logs: rides[index]?.count || 0,
+                            error_count: rides[index]?.error_count || 0,
+                            avg_response_time: rides[index]?.avg_duration || 0,
+                            system_load: Math.random() * 100 // Placeholder for system load
+                        }))
+                    };
+                    break;
+                default:
+                    throw new Error('Invalid analytics type');
+            }
             
             res.json({
                 success: true,
                 data: {
-                    userGrowth,
-                    revenueData,
-                    rideStats,
-                    period
+                    data: data,
+                    period: {
+                        startDate: startDate.toISOString().split('T')[0],
+                        endDate: endDate.toISOString().split('T')[0]
+                    }
                 }
             });
 

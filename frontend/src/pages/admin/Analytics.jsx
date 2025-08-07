@@ -69,11 +69,13 @@ const Analytics = () => {
   const fetchAnalytics = async (type = selectedType, period = selectedPeriod) => {
     try {
       setRefreshing(true);
-      const response = await api.get(`/api/admin/analytics?type=${type}&period=${period}`);
+      const response = await api.get(`/api/admin/dashboard/analytics?type=${type}&period=${period}`);
       
+      // Ensure response.data.data has the expected structure
+      const analyticsData = response.data.data || { data: [], period: { startDate: '', endDate: '' } };
       setAnalyticsData(prev => ({
         ...prev,
-        [type]: response.data.data
+        [type]: analyticsData
       }));
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -204,7 +206,7 @@ const Analytics = () => {
           <BarChart3 className="w-12 h-12 text-text-muted mx-auto mb-4" />
           <p className="text-text-muted">Chart visualization would be implemented here</p>
           <p className="text-sm text-text-muted mt-2">
-            Data points: {data.data.length}
+            Data points: {data.data?.length || 0}
           </p>
         </div>
       </div>
@@ -212,7 +214,8 @@ const Analytics = () => {
   };
 
   const calculateSummary = (data, type) => {
-    if (!data || data.length === 0) return {};
+    // Ensure data is an array
+    if (!Array.isArray(data) || data.length === 0) return {};
 
     switch (type) {
       case 'users':
