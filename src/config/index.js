@@ -102,6 +102,7 @@ const config = {
   // Admin configuration
   admin: {
     jwtSecret: process.env.ADMIN_JWT_SECRET || 'your-admin-secret-key-change-this-in-production',
+    jwtExpiresIn: process.env.ADMIN_JWT_EXPIRES_IN || '24h',
     sessionSecret: process.env.ADMIN_SESSION_SECRET || 'your-admin-session-secret',
     defaultRole: 'admin',
     defaultPermissions: {
@@ -109,7 +110,8 @@ const config = {
       rides: ['read', 'write'],
       analytics: ['read'],
       settings: ['read', 'write'],
-      reports: ['read', 'write']
+      reports: ['read', 'write'],
+      admin_management: ['read', 'write']
     }
   },
 

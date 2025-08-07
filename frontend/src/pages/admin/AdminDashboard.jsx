@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../utils/AuthContext';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api';
 import WidgetRenderer from '../../components/admin/widgets/WidgetRenderer';
 import { RefreshCw, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
   const { admin } = useAuth();
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [layout, setLayout] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,9 +18,12 @@ const AdminDashboard = () => {
     try {
       setRefreshing(true);
       const [overviewResponse, analyticsResponse] = await Promise.all([
-        axios.get('/api/admin/dashboard/overview'),
-        axios.get('/api/admin/dashboard/analytics?period=7d')
+        api.get('/api/admin/dashboard/overview'),
+        api.get('/api/admin/dashboard/analytics?period=7d')
       ]);
+
+      console.log('🔍 Overview Response:', overviewResponse.data);
+      console.log('🔍 Analytics Response:', analyticsResponse.data);
 
       const dashboardData = {
         stats: overviewResponse.data.data.stats,
@@ -27,11 +32,14 @@ const AdminDashboard = () => {
         lastUpdated: overviewResponse.data.data.lastUpdated
       };
       
-      console.log('Dashboard data:', dashboardData);
+      console.log('📊 Dashboard data structure:', dashboardData);
+      console.log('📈 Stats data:', dashboardData.stats);
+      console.log('📋 Layout data:', overviewResponse.data.data.layout);
+      
       setDashboardData(dashboardData);
       setLayout(overviewResponse.data.data.layout);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('❌ Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
@@ -45,6 +53,10 @@ const AdminDashboard = () => {
 
   const handleRefresh = () => {
     fetchDashboardData();
+  };
+
+  const handleSettingsClick = () => {
+    navigate('/admin/settings');
   };
 
   if (loading) {
@@ -78,7 +90,10 @@ const AdminDashboard = () => {
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
             <span>Refresh</span>
           </button>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-background-secondary text-text-primary rounded-lg border border-border hover:bg-background-tertiary transition-colors">
+          <button 
+            onClick={handleSettingsClick}
+            className="flex items-center space-x-2 px-4 py-2 bg-background-secondary text-text-primary rounded-lg border border-border hover:bg-background-tertiary transition-colors"
+          >
             <Settings size={16} />
             <span>Settings</span>
           </button>

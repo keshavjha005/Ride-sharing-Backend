@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../utils/AuthContext';
-import axios from 'axios';
+import api from '../../utils/api';
 import { 
   BarChart3, 
   Users, 
@@ -69,7 +69,7 @@ const Analytics = () => {
   const fetchAnalytics = async (type = selectedType, period = selectedPeriod) => {
     try {
       setRefreshing(true);
-      const response = await axios.get(`/api/admin/analytics?type=${type}&period=${period}`);
+      const response = await api.get(`/api/admin/analytics?type=${type}&period=${period}`);
       
       setAnalyticsData(prev => ({
         ...prev,
@@ -106,7 +106,7 @@ const Analytics = () => {
 
   const handleExport = async () => {
     try {
-      const response = await axios.get(`/api/admin/export?type=${selectedType}&format=csv`);
+      const response = await api.get(`/api/admin/export?type=${selectedType}&format=csv`);
       
       // Create and download CSV file
       const csvContent = convertToCSV(response.data.data.records);

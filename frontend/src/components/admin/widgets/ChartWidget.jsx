@@ -36,6 +36,8 @@ const ChartWidget = ({ widget, data, language = 'en' }) => {
         return formatChartData(data.analytics.revenueData || []);
       case 'user_growth':
         return formatChartData(data.analytics.userGrowth || []);
+      case 'ride_statistics':
+        return formatChartData(data.analytics.rideStats || []);
       default:
         return [];
     }

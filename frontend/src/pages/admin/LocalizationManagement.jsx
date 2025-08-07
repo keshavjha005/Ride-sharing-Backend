@@ -24,7 +24,7 @@ import {
   Clock,
   User
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const LocalizationManagement = () => {
   const [activeTab, setActiveTab] = useState('content');
@@ -48,15 +48,15 @@ const LocalizationManagement = () => {
     try {
       switch (activeTab) {
         case 'content':
-          const contentResponse = await axios.get('/api/admin/localized-content');
+          const contentResponse = await api.get('/api/admin/localized-content');
           setContent(contentResponse.data.data.content);
           break;
         case 'languages':
-          const languagesResponse = await axios.get('/api/admin/language-settings');
+          const languagesResponse = await api.get('/api/admin/language-settings');
           setLanguages(languagesResponse.data.data.languages);
           break;
         case 'translations':
-          const translationsResponse = await axios.get('/api/admin/translations');
+          const translationsResponse = await api.get('/api/admin/translations');
           setTranslations(translationsResponse.data.data.translations);
           break;
       }

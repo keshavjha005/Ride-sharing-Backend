@@ -173,6 +173,22 @@ class AdminUser {
     }
 
     /**
+     * Delete admin user by email
+     */
+    static async deleteByEmail(email) {
+        try {
+            const result = await db.executeQuery(
+                'DELETE FROM admin_users WHERE email = ?',
+                [email]
+            );
+            return result.affectedRows > 0;
+        } catch (error) {
+            console.error('Error deleting admin user by email:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Get all admin users with pagination
      */
     static async findAll(options = {}) {
@@ -192,15 +208,14 @@ class AdminUser {
                 whereValues.push(is_active);
             }
 
-            const rows = await db.executeQuery(
-                `SELECT * FROM admin_users ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-                [...whereValues, limit, offset]
-            );
+            // Build the query with proper parameter handling
+            const query = `SELECT * FROM admin_users ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+            const queryParams = [...whereValues, parseInt(limit), parseInt(offset)];
 
-            const countResult = await db.executeQuery(
-                `SELECT COUNT(*) as total FROM admin_users ${whereClause}`,
-                whereValues
-            );
+            const rows = await db.executeQuery(query, queryParams);
+
+            const countQuery = `SELECT COUNT(*) as total FROM admin_users ${whereClause}`;
+            const countResult = await db.executeQuery(countQuery, whereValues);
 
             return {
                 users: rows.map(row => new AdminUser(row)),

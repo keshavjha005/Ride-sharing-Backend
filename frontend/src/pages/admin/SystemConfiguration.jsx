@@ -29,7 +29,7 @@ import {
   Monitor,
   RefreshCw
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const SystemConfiguration = () => {
   const [activeTab, setActiveTab] = useState('settings');
@@ -54,19 +54,19 @@ const SystemConfiguration = () => {
     try {
       switch (activeTab) {
         case 'settings':
-          const settingsResponse = await axios.get('/api/admin/system-settings');
+          const settingsResponse = await api.get('/api/admin/system-settings');
           setSettings(settingsResponse.data.data);
-          const categoriesResponse = await axios.get('/api/admin/system-settings/categories');
+                      const categoriesResponse = await api.get('/api/admin/system-settings/categories');
           setCategories(categoriesResponse.data.data);
           break;
         case 'features':
-          const featuresResponse = await axios.get('/api/admin/feature-flags');
+          const featuresResponse = await api.get('/api/admin/feature-flags');
           setFeatureFlags(featuresResponse.data.data);
           break;
         case 'health':
-          const healthResponse = await axios.get('/api/admin/system-health');
+          const healthResponse = await api.get('/api/admin/system-health');
           setSystemHealth(healthResponse.data.data);
-          const logsResponse = await axios.get('/api/admin/system-health/logs');
+                      const logsResponse = await api.get('/api/admin/system-health/logs');
           setHealthLogs(logsResponse.data.data);
           break;
       }
@@ -145,7 +145,7 @@ const SystemConfiguration = () => {
 
   const handleHealthCheck = async () => {
     try {
-      await axios.post('/api/admin/system-health/check');
+              await api.post('/api/admin/system-health/check');
       loadData();
     } catch (error) {
       console.error('Error performing health check:', error);

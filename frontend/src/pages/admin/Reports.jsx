@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../utils/AuthContext';
-import axios from 'axios';
+import api from '../../utils/api';
 import { 
   FileText, 
   Plus, 
@@ -60,7 +60,7 @@ const Reports = () => {
   const fetchScheduledReports = async () => {
     try {
       setRefreshing(true);
-      const response = await axios.get('/api/admin/scheduled-reports');
+      const response = await api.get('/api/admin/scheduled-reports');
       setScheduledReports(response.data.data.reports);
     } catch (error) {
       console.error('Error fetching scheduled reports:', error);
@@ -82,7 +82,7 @@ const Reports = () => {
         recipients: formData.recipients.filter(email => email.trim() !== '')
       };
 
-      await axios.post('/api/admin/scheduled-reports', payload);
+              await api.post('/api/admin/scheduled-reports', payload);
       toast.success('Scheduled report created successfully');
       setShowCreateModal(false);
       resetForm();
@@ -100,7 +100,7 @@ const Reports = () => {
         recipients: formData.recipients.filter(email => email.trim() !== '')
       };
 
-      await axios.put(`/api/admin/scheduled-reports/${selectedReport.id}`, payload);
+              await api.put(`/api/admin/scheduled-reports/${selectedReport.id}`, payload);
       toast.success('Scheduled report updated successfully');
       setShowEditModal(false);
       resetForm();
@@ -117,7 +117,7 @@ const Reports = () => {
     }
 
     try {
-      await axios.delete(`/api/admin/scheduled-reports/${reportId}`);
+      await api.delete(`/api/admin/scheduled-reports/${reportId}`);
       toast.success('Scheduled report deleted successfully');
       fetchScheduledReports();
     } catch (error) {
@@ -176,7 +176,7 @@ const Reports = () => {
 
   const generateReport = async (reportType, dateRange = '7d') => {
     try {
-      const response = await axios.post('/api/admin/reports/generate', {
+      const response = await api.post('/api/admin/reports/generate', {
         reportType,
         dateRange,
         format: 'json'

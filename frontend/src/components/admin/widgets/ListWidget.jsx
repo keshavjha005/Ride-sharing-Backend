@@ -33,6 +33,7 @@ const ListWidget = ({ widget, data, language = 'en' }) => {
       'ride_created': Car,
       'payment_processed': DollarSign,
       'ride_completed': CheckCircle,
+      'user_analytics_update': Activity,
       'system_alert': AlertCircle,
       'pending_action': Clock
     };
@@ -45,6 +46,7 @@ const ListWidget = ({ widget, data, language = 'en' }) => {
       'ride_created': '#FD7A00',
       'payment_processed': '#00BCD4',
       'ride_completed': '#4CAF50',
+      'user_analytics_update': '#9C27B0',
       'system_alert': '#F44336',
       'pending_action': '#FFC107'
     };
@@ -95,6 +97,11 @@ const ListWidget = ({ widget, data, language = 'en' }) => {
           <p className="text-sm text-text-primary font-medium">
             {item.message || 'Activity'}
           </p>
+          {item.details && (
+            <p className="text-xs text-text-secondary mt-1">
+              {item.details}
+            </p>
+          )}
           <p className="text-xs text-text-muted mt-1">
             {formatTimeAgo(item.created_at)}
           </p>

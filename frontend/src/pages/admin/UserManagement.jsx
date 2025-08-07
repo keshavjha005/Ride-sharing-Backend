@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Search, 
@@ -17,9 +18,10 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const UserManagement = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -50,7 +52,7 @@ const UserManagement = () => {
         ...filters
       });
 
-      const response = await axios.get(`/api/admin/users?${params}`);
+      const response = await api.get(`/api/admin/users?${params}`);
       
       if (response.data.success) {
         setUsers(response.data.data.users);
@@ -88,19 +90,19 @@ const UserManagement = () => {
       
       switch (action) {
         case 'block':
-          response = await axios.post(`/api/admin/users/${userId}/block`, { is_active: false });
+          response = await api.post(`/api/admin/users/${userId}/block`, { is_active: false });
           break;
         case 'unblock':
-          response = await axios.post(`/api/admin/users/${userId}/block`, { is_active: true });
+          response = await api.post(`/api/admin/users/${userId}/block`, { is_active: true });
           break;
         case 'verify':
-          response = await axios.post(`/api/admin/users/${userId}/verify`, { verification_status: 'verified' });
+          response = await api.post(`/api/admin/users/${userId}/verify`, { verification_status: 'verified' });
           break;
         case 'reject':
-          response = await axios.post(`/api/admin/users/${userId}/verify`, { verification_status: 'rejected' });
+          response = await api.post(`/api/admin/users/${userId}/verify`, { verification_status: 'rejected' });
           break;
         case 'delete':
-          response = await axios.delete(`/api/admin/users/${userId}`);
+          response = await api.delete(`/api/admin/users/${userId}`);
           break;
         default:
           return;
@@ -124,7 +126,7 @@ const UserManagement = () => {
       });
 
       if (format === 'csv') {
-        const response = await axios.get(`/api/admin/users/export?${params}`, {
+        const response = await api.get(`/api/admin/users/export?${params}`, {
           responseType: 'blob'
         });
         
@@ -136,7 +138,7 @@ const UserManagement = () => {
         link.click();
         link.remove();
       } else {
-        const response = await axios.get(`/api/admin/users/export?${params}`);
+        const response = await api.get(`/api/admin/users/export?${params}`);
         const dataStr = JSON.stringify(response.data.data, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         const url = window.URL.createObjectURL(dataBlob);
@@ -158,8 +160,8 @@ const UserManagement = () => {
   const getStatusBadge = (isActive) => (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
       isActive 
-        ? 'bg-green-100 text-green-800' 
-        : 'bg-red-100 text-red-800'
+        ? 'bg-success/20 text-success border border-success/30' 
+        : 'bg-error/20 text-error border border-error/30'
     }`}>
       {isActive ? 'Active' : 'Blocked'}
     </span>
@@ -169,9 +171,9 @@ const UserManagement = () => {
     if (!status) return <span className="text-gray-500">N/A</span>;
     
     const badges = {
-      verified: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      pending: { color: 'bg-yellow-100 text-yellow-800', icon: AlertTriangle },
-      rejected: { color: 'bg-red-100 text-red-800', icon: XCircle }
+      verified: { color: 'bg-success/20 text-success border border-success/30', icon: CheckCircle },
+      pending: { color: 'bg-warning/20 text-warning border border-warning/30', icon: AlertTriangle },
+      rejected: { color: 'bg-error/20 text-error border border-error/30', icon: XCircle }
     };
     
     const badge = badges[status] || badges.pending;
@@ -188,8 +190,8 @@ const UserManagement = () => {
   const getRiskScoreBadge = (score) => {
     if (!score || typeof score !== 'number') return <span className="text-gray-500">N/A</span>;
     
-    const color = score <= 0.3 ? 'text-green-600' : score <= 0.7 ? 'text-yellow-600' : 'text-red-600';
-    return <span className={`font-medium ${color}`}>{score.toFixed(2)}</span>;
+    const color = score <= 0.3 ? 'text-success' : score <= 0.7 ? 'text-warning' : 'text-error';
+    return <span className={`font-medium ${color}`}>{(score * 100).toFixed(0)}%</span>;
   };
 
   return (
@@ -203,14 +205,14 @@ const UserManagement = () => {
         <div className="flex gap-3">
           <button
             onClick={() => exportUsers('json')}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-background-secondary hover:bg-background-tertiary text-text-primary rounded-lg transition-colors"
           >
             <Download className="w-4 h-4" />
             Export JSON
           </button>
           <button
             onClick={() => exportUsers('csv')}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-background-secondary hover:bg-background-tertiary text-text-primary rounded-lg transition-colors"
           >
             <Download className="w-4 h-4" />
             Export CSV
@@ -238,7 +240,7 @@ const UserManagement = () => {
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-background-secondary hover:bg-background-tertiary text-text-primary rounded-lg transition-colors"
           >
             <Filter className="w-4 h-4" />
             Filters
@@ -246,7 +248,7 @@ const UserManagement = () => {
           
           <button
             type="submit"
-            className="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+            className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors"
           >
             Search
           </button>
@@ -376,7 +378,7 @@ const UserManagement = () => {
                       <div className="text-sm text-gray-300">
                         <div>Rides: {user.total_rides || 0}</div>
                         <div>Spent: ${user.total_spent || 0}</div>
-                                                       <div>Rating: {user.average_rating && typeof user.average_rating === 'number' ? user.average_rating.toFixed(1) : 'N/A'}</div>
+                        <div>Rating: {user.average_rating && typeof user.average_rating === 'number' ? user.average_rating.toFixed(1) : 'N/A'}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -390,8 +392,8 @@ const UserManagement = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => user.id && (window.location.href = `/admin/users/${user.id}`)}
-                          className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
+                          onClick={() => user.id && navigate(`/admin/users/${user.id}`)}
+                          className="p-1 text-info hover:text-info/80 transition-colors"
                           title="View Details"
                         >
                           <Eye className="w-4 h-4" />
@@ -400,7 +402,7 @@ const UserManagement = () => {
                         {user.is_active !== null && user.is_active !== undefined && user.is_active && (
                           <button
                             onClick={() => user.id && handleUserAction(user.id, 'block')}
-                            className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                            className="p-1 text-error hover:text-error/80 transition-colors"
                             title="Block User"
                           >
                             <ShieldOff className="w-4 h-4" />
@@ -410,7 +412,7 @@ const UserManagement = () => {
                         {user.is_active !== null && user.is_active !== undefined && !user.is_active && (
                           <button
                             onClick={() => user.id && handleUserAction(user.id, 'unblock')}
-                            className="p-1 text-green-400 hover:text-green-300 transition-colors"
+                            className="p-1 text-success hover:text-success/80 transition-colors"
                             title="Unblock User"
                           >
                             <Shield className="w-4 h-4" />
@@ -421,14 +423,14 @@ const UserManagement = () => {
                           <>
                             <button
                               onClick={() => user.id && handleUserAction(user.id, 'verify')}
-                              className="p-1 text-green-400 hover:text-green-300 transition-colors"
+                              className="p-1 text-success hover:text-success/80 transition-colors"
                               title="Verify User"
                             >
                               <CheckCircle className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => user.id && handleUserAction(user.id, 'reject')}
-                              className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                              className="p-1 text-error hover:text-error/80 transition-colors"
                               title="Reject User"
                             >
                               <XCircle className="w-4 h-4" />
@@ -438,7 +440,7 @@ const UserManagement = () => {
                         
                         <button
                           onClick={() => user.id && handleUserAction(user.id, 'delete')}
-                          className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                          className="p-1 text-error hover:text-error/80 transition-colors"
                           title="Delete User"
                         >
                           <Trash2 className="w-4 h-4" />

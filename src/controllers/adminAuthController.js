@@ -46,7 +46,7 @@ class AdminAuthController {
                     role: adminUser.role
                 },
                 config.admin.jwtSecret,
-                { expiresIn: '24h' }
+                { expiresIn: config.admin.jwtExpiresIn }
             );
 
             // Update last login
@@ -178,6 +178,59 @@ class AdminAuthController {
     }
 
     /**
+     * Change admin password
+     */
+    static async changePassword(req, res) {
+        try {
+            const { id } = req.admin;
+            const { current_password, new_password } = req.body;
+
+            // Validate input
+            if (!current_password || !new_password) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Current password and new password are required'
+                });
+            }
+
+            // Get current admin user
+            const adminUser = await AdminUser.findById(id);
+            if (!adminUser) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Admin user not found'
+                });
+            }
+
+            // Verify current password
+            const isValidPassword = await bcrypt.compare(current_password, adminUser.password_hash);
+            if (!isValidPassword) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Current password is incorrect'
+                });
+            }
+
+            // Hash new password
+            const newPasswordHash = await bcrypt.hash(new_password, config.security.bcryptRounds);
+
+            // Update password
+            await AdminUser.update(id, { password_hash: newPasswordHash });
+
+            res.json({
+                success: true,
+                message: 'Password changed successfully'
+            });
+        } catch (error) {
+            console.error('Error changing password:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error changing password'
+            });
+        }
+    }
+
+    /**
      * Refresh admin token
      */
     static async refreshToken(req, res) {
@@ -211,7 +264,7 @@ class AdminAuthController {
                     role: decoded.role
                 },
                 config.admin.jwtSecret,
-                { expiresIn: '24h' }
+                { expiresIn: config.admin.jwtExpiresIn }
             );
 
             res.json({

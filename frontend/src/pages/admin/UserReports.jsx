@@ -14,7 +14,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const UserReports = () => {
   const [reports, setReports] = useState([]);
@@ -47,7 +47,7 @@ const UserReports = () => {
         ...filters
       });
 
-      const response = await axios.get(`/api/admin/user-reports?${params}`);
+      const response = await api.get(`/api/admin/user-reports?${params}`);
       
       if (response.data.success) {
         setReports(response.data.data.data);
@@ -80,19 +80,19 @@ const UserReports = () => {
       
       switch (action) {
         case 'investigate':
-          response = await axios.put(`/api/admin/user-reports/${reportId}/status`, { 
+          response = await api.put(`/api/admin/user-reports/${reportId}/status`, { 
             status: 'investigating',
             admin_notes: data.admin_notes
           });
           break;
         case 'resolve':
-          response = await axios.put(`/api/admin/user-reports/${reportId}/status`, { 
+          response = await api.put(`/api/admin/user-reports/${reportId}/status`, { 
             status: 'resolved',
             admin_notes: data.admin_notes
           });
           break;
         case 'dismiss':
-          response = await axios.put(`/api/admin/user-reports/${reportId}/status`, { 
+          response = await api.put(`/api/admin/user-reports/${reportId}/status`, { 
             status: 'dismissed',
             admin_notes: data.admin_notes
           });
@@ -118,7 +118,7 @@ const UserReports = () => {
     }
 
     try {
-      const response = await axios.post('/api/admin/user-reports/bulk-update', {
+      const response = await api.post('/api/admin/user-reports/bulk-update', {
         report_ids: selectedReports,
         status: action
       });
@@ -142,7 +142,7 @@ const UserReports = () => {
       });
 
       if (format === 'csv') {
-        const response = await axios.get(`/api/admin/user-reports/export?${params}`, {
+        const response = await api.get(`/api/admin/user-reports/export?${params}`, {
           responseType: 'blob'
         });
         
@@ -154,7 +154,7 @@ const UserReports = () => {
         link.click();
         link.remove();
       } else {
-        const response = await axios.get(`/api/admin/user-reports/export?${params}`);
+        const response = await api.get(`/api/admin/user-reports/export?${params}`);
         const dataStr = JSON.stringify(response.data.data, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         const url = window.URL.createObjectURL(dataBlob);

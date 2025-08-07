@@ -3,6 +3,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design Tokens CSS Variables */
+:root {
+  /* Colors */
+  --color-primary: #FD7A00;
+  --color-primary-dark: #cc6300;
+  --color-primary-light: #ff9740;
+  --color-background: #1E1F25;
+  --color-background-secondary: #2A2B32;
+  --color-background-tertiary: #34353D;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #B0B3BD;
+  --color-text-muted: #6C6F7F;
+  --color-border: #3E3F47;
+  --color-hover: #2F3037;
+  --color-success: #4CAF50;
+  --color-warning: #FFC107;
+  --color-error: #F44336;
+  --color-info: #00BCD4;
+  --color-task-complete: #4CAF50;
+  --color-task-inprogress: #FD7A00;
+  --color-task-pending: #FFC107;
+  --color-calendar-highlight: #FD7A00;
+  --color-tag-android: #8BC34A;
+  --color-tag-ios: #2196F3;
+  --color-tag-uiux: #9C27B0;
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -18,7 +18,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const RideDisputes = () => {
   const [disputes, setDisputes] = useState([]);
@@ -52,7 +52,7 @@ const RideDisputes = () => {
         ...filters
       });
 
-      const response = await axios.get(`/api/admin/ride-disputes?${params}`);
+      const response = await api.get(`/api/admin/ride-disputes?${params}`);
       
       if (response.data.success) {
         setDisputes(response.data.data.data);
@@ -85,20 +85,20 @@ const RideDisputes = () => {
       
       switch (action) {
         case 'investigate':
-          response = await axios.put(`/api/admin/ride-disputes/${disputeId}/resolve`, { 
+          response = await api.put(`/api/admin/ride-disputes/${disputeId}/resolve`, { 
             status: 'investigating',
             resolution_en: data.resolution_en || 'Investigation started'
           });
           break;
         case 'resolve':
-          response = await axios.put(`/api/admin/ride-disputes/${disputeId}/resolve`, { 
+          response = await api.put(`/api/admin/ride-disputes/${disputeId}/resolve`, { 
             status: 'resolved',
             resolution_en: data.resolution_en || 'Dispute resolved',
             resolution_ar: data.resolution_ar
           });
           break;
         case 'close':
-          response = await axios.put(`/api/admin/ride-disputes/${disputeId}/resolve`, { 
+          response = await api.put(`/api/admin/ride-disputes/${disputeId}/resolve`, { 
             status: 'closed',
             resolution_en: data.resolution_en || 'Dispute closed',
             resolution_ar: data.resolution_ar
@@ -126,7 +126,7 @@ const RideDisputes = () => {
       });
 
       if (format === 'csv') {
-        const response = await axios.get(`/api/admin/ride-disputes/export?${params}`, {
+        const response = await api.get(`/api/admin/ride-disputes/export?${params}`, {
           responseType: 'blob'
         });
         
@@ -138,7 +138,7 @@ const RideDisputes = () => {
         link.click();
         link.remove();
       } else {
-        const response = await axios.get(`/api/admin/ride-disputes/export?${params}`);
+        const response = await api.get(`/api/admin/ride-disputes/export?${params}`);
         const dataStr = JSON.stringify(response.data.data, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         const url = window.URL.createObjectURL(dataBlob);

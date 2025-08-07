@@ -15,7 +15,7 @@ import {
 import { useAuth } from '../../utils/AuthContext'
 
 const Sidebar = () => {
-  const { logout } = useAuth()
+  const { admin, logout } = useAuth()
 
   const handleLogout = async () => {
     await logout()
@@ -54,14 +54,15 @@ const Sidebar = () => {
       label: 'Localization'
     },
     {
+      path: '/admin/admin-management',
+      icon: Shield,
+      label: 'Admin Management',
+      requiresSuperAdmin: true
+    },
+    {
       path: '/admin/settings',
       icon: Cog,
       label: 'System Configuration'
-    },
-    {
-      path: '/admin/security',
-      icon: Shield,
-      label: 'Security'
     }
   ]
 
@@ -80,24 +81,31 @@ const Sidebar = () => {
       {/* Navigation */}
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {navItems.map((item) => (
-            <li key={item.path}>
-              <NavLink
-                to={item.path}
-                end={item.exact}
-                className={({ isActive }) =>
-                  `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
-                    isActive
-                      ? 'bg-primary text-white'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-background-tertiary'
-                  }`
-                }
-              >
-                <item.icon className="w-5 h-5 mr-3" />
-                {item.label}
-              </NavLink>
-            </li>
-          ))}
+          {navItems.map((item) => {
+            // Check if item requires super admin and current user is not super admin
+            if (item.requiresSuperAdmin && admin?.role !== 'super_admin') {
+              return null;
+            }
+            
+            return (
+              <li key={item.path}>
+                <NavLink
+                  to={item.path}
+                  end={item.exact}
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
+                      isActive
+                        ? 'bg-primary text-white'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-background-tertiary'
+                    }`
+                  }
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {item.label}
+                </NavLink>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 

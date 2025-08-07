@@ -9,7 +9,8 @@ const RideDisputesController = require('../controllers/rideDisputesController');
 const AdminLocalizationController = require('../controllers/adminLocalizationController');
 const SystemConfigController = require('../controllers/systemConfigController');
 const ReportingController = require('../controllers/reportingController');
-const { adminAuth, adminRoleAuth } = require('../middleware/adminAuth');
+const AdminManagementController = require('../controllers/adminManagementController');
+const { adminAuth, adminRoleAuth, adminPermissionAuth } = require('../middleware/adminAuth');
 
 // Admin authentication routes (no auth required)
 router.post('/auth/login', AdminAuthController.login);
@@ -19,6 +20,17 @@ router.post('/auth/refresh', AdminAuthController.refreshToken);
 // Admin profile routes (auth required)
 router.get('/auth/profile', adminAuth, AdminAuthController.getProfile);
 router.put('/auth/profile', adminAuth, AdminAuthController.updateProfile);
+router.post('/auth/change-password', adminAuth, AdminAuthController.changePassword);
+
+// Admin Management routes (super admin only)
+router.get('/admin-management', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getAdmins);
+router.get('/admin-management/stats', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getAdminStats);
+router.get('/admin-management/roles-permissions', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getRolesAndPermissions);
+router.get('/admin-management/:id', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getAdminById);
+router.post('/admin-management', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.createAdmin);
+router.put('/admin-management/:id', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.updateAdmin);
+router.delete('/admin-management/:id', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.deleteAdmin);
+router.post('/admin-management/:id/toggle-status', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.toggleAdminStatus);
 
 // Dashboard routes (auth required)
 router.get('/dashboard/overview', adminAuth, DashboardController.getOverview);

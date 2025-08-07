@@ -22,7 +22,7 @@ import {
   Star
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const RideManagement = () => {
   const [rides, setRides] = useState([]);
@@ -67,7 +67,7 @@ const RideManagement = () => {
         endpoint = '/api/admin/rides/cancelled';
       }
 
-      const response = await axios.get(`${endpoint}?${params}`);
+              const response = await api.get(`${endpoint}?${params}`);
       
       if (response.data.success) {
         if (activeTab === 'all') {
@@ -114,10 +114,10 @@ const RideManagement = () => {
       
       switch (action) {
         case 'update_status':
-          response = await axios.put(`/api/admin/rides/${rideId}/status`, data);
+          response = await api.put(`/api/admin/rides/${rideId}/status`, data);
           break;
         case 'delete':
-          response = await axios.delete(`/api/admin/rides/${rideId}`);
+          response = await api.delete(`/api/admin/rides/${rideId}`);
           break;
         default:
           return;
@@ -141,7 +141,7 @@ const RideManagement = () => {
       });
 
       if (format === 'csv') {
-        const response = await axios.get(`/api/admin/rides/export?${params}`, {
+        const response = await api.get(`/api/admin/rides/export?${params}`, {
           responseType: 'blob'
         });
         
@@ -153,7 +153,7 @@ const RideManagement = () => {
         link.click();
         link.remove();
       } else {
-        const response = await axios.get(`/api/admin/rides/export?${params}`);
+        const response = await api.get(`/api/admin/rides/export?${params}`);
         const dataStr = JSON.stringify(response.data.data, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         const url = window.URL.createObjectURL(dataBlob);

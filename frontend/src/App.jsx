@@ -12,6 +12,9 @@ import LocalizationManagement from './pages/admin/LocalizationManagement'
 import SystemConfiguration from './pages/admin/SystemConfiguration'
 import Analytics from './pages/admin/Analytics'
 import Reports from './pages/admin/Reports'
+import AdminManagement from './pages/admin/AdminManagement'
+import AdminProfile from './pages/admin/AdminProfile'
+import UserDetail from './pages/admin/UserDetail'
 import NotFound from './components/NotFound'
 import { AuthProvider } from './utils/AuthContext'
 
@@ -30,10 +33,13 @@ function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<UserManagement />} />
+          <Route path="users/:id" element={<UserDetail />} />
           <Route path="reports" element={<UserReports />} />
           <Route path="rides" element={<RideManagement />} />
           <Route path="ride-disputes" element={<RideDisputes />} />
           <Route path="localization" element={<LocalizationManagement />} />
+          <Route path="admin-management" element={<AdminManagement />} />
+          <Route path="profile" element={<AdminProfile />} />
           <Route path="settings" element={<SystemConfiguration />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="reports" element={<Reports />} />

@@ -2,24 +2,68 @@ const DashboardWidget = require('../models/DashboardWidget');
 const DashboardLayout = require('../models/DashboardLayout');
 const db = require('../config/database');
 
+console.log('🔄 DashboardController loaded - using ride_analytics table for ride data');
+
 class DashboardController {
     /**
      * Get dashboard overview with analytics
      */
     static async getOverview(req, res) {
         try {
+            console.log('🔄 Dashboard getOverview called');
             const language = req.admin?.language_code || 'en';
             
             // Get real-time statistics
-            const stats = await DashboardController.getRealTimeStats();
+            console.log('🔄 Calling getRealTimeStats...');
+            let stats;
+            try {
+                stats = await DashboardController.getRealTimeStats();
+                console.log('📊 getRealTimeStats returned:', stats);
+            } catch (error) {
+                console.error('❌ Error calling getRealTimeStats:', error);
+                stats = {
+                    totalUsers: 0,
+                    verifiedUsers: 0,
+                    unverifiedUsers: 0,
+                    newUsersToday: 0,
+                    verifiedUsersToday: 0,
+                    totalRides: 0,
+                    activeRides: 0,
+                    confirmedRides: 0,
+                    startedRides: 0,
+                    inProgressRides: 0,
+                    completedRides: 0,
+                    cancelledRides: 0,
+                    ridesToday: 0,
+                    completedRidesToday: 0,
+                    cancelledRidesToday: 0,
+                    todayRevenue: 0,
+                    totalRevenue: 0,
+                    todayCompletedRevenue: 0,
+                    todayTransactions: 0,
+                    totalCompletedTransactions: 0,
+                    avgRidesPerUser: 0,
+                    avgSpentPerUser: 0,
+                    avgUserRating: 0,
+                    avgDistance: 0,
+                    avgDuration: 0,
+                    avgFare: 0,
+                    avgCommission: 0,
+                    avgRideRating: 0
+                };
+            }
             
             // Get recent activity
+            console.log('🔄 Calling getRecentActivity...');
             const recentActivity = await DashboardController.getRecentActivity();
+            console.log('📋 getRecentActivity returned:', recentActivity.length, 'items');
             
             // Get dashboard layout with widgets
+            console.log('🔄 Getting dashboard layout...');
             const layout = await DashboardLayout.getLayoutWithWidgets(req.admin.id, language);
+            console.log('📋 Layout retrieved:', layout ? 'success' : 'failed');
             
-            res.json({
+            const response = {
                 success: true,
                 data: {
                     stats,
@@ -27,10 +71,13 @@ class DashboardController {
                     layout,
                     lastUpdated: new Date().toISOString()
                 }
-            });
+            };
+            
+            console.log('📤 Sending dashboard response');
+            res.json(response);
 
         } catch (error) {
-            console.error('Dashboard overview error:', error);
+            console.error('❌ Dashboard overview error:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error fetching dashboard overview'
@@ -42,64 +89,169 @@ class DashboardController {
      * Get real-time statistics
      */
     static async getRealTimeStats() {
+        console.log('🚀 getRealTimeStats method called');
         try {
-            // Get total users
-            const [totalUsersResult] = await db.executeQuery('SELECT COUNT(*) as count FROM users WHERE is_deleted IS NULL');
-            const totalUsers = totalUsersResult.count;
-
-            // Get active rides
-            const [activeRidesResult] = await db.executeQuery(`
-                SELECT COUNT(*) as count FROM rides 
-                WHERE status IN ('confirmed', 'started', 'in_progress')
+            console.log('🔄 Getting real-time stats...');
+            
+            // Get total users with verification status
+            console.log('🔍 Querying users table...');
+            const totalUsersResult = await db.executeQuery(`
+                SELECT 
+                    COUNT(*) as total_users,
+                    COUNT(CASE WHEN is_verified = 1 THEN 1 END) as verified_users,
+                    COUNT(CASE WHEN is_verified = 0 THEN 1 END) as unverified_users
+                FROM users 
+                WHERE is_deleted IS NULL
             `);
-            const activeRides = activeRidesResult.count;
+            console.log('🔍 Users query result:', totalUsersResult);
+            const userStats = totalUsersResult && totalUsersResult[0] ? totalUsersResult[0] : { total_users: 0, verified_users: 0, unverified_users: 0 };
+            console.log('👥 User stats:', userStats);
 
-            // Get today's revenue
-            const [todayRevenueResult] = await db.executeQuery(`
-                SELECT COALESCE(SUM(amount), 0) as total FROM payment_transactions 
-                WHERE DATE(created_at) = CURDATE() AND status = 'completed'
+            // Get ride statistics from ride_analytics table (like Ride Management uses)
+            console.log('🔍 Querying ride_analytics table...');
+            const rideAnalyticsResult = await db.executeQuery(`
+                SELECT 
+                    COUNT(*) as total_rides,
+                    COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed_rides,
+                    COUNT(CASE WHEN status = 'started' THEN 1 END) as started_rides,
+                    COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress_rides,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_rides,
+                    COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_rides
+                FROM ride_analytics
             `);
-            const todayRevenue = parseFloat(todayRevenueResult.total);
+            console.log('🔍 Ride analytics query result:', rideAnalyticsResult);
+            const rideStats = rideAnalyticsResult && rideAnalyticsResult[0] ? rideAnalyticsResult[0] : { total_rides: 0, confirmed_rides: 0, started_rides: 0, in_progress_rides: 0, completed_rides: 0, cancelled_rides: 0 };
+            console.log('🚗 Ride stats:', rideStats);
 
-            // Get total revenue
-            const [totalRevenueResult] = await db.executeQuery(`
-                SELECT COALESCE(SUM(amount), 0) as total FROM payment_transactions 
-                WHERE status = 'completed'
+            // Get revenue statistics from payment_transactions
+            const revenueResult = await db.executeQuery(`
+                SELECT 
+                    COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN amount END), 0) as today_revenue,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount END), 0) as total_revenue,
+                    COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() AND status = 'completed' THEN amount END), 0) as today_completed_revenue,
+                    COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as today_transactions,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as total_completed_transactions
+                FROM payment_transactions
             `);
-            const totalRevenue = parseFloat(totalRevenueResult.total);
+            const revenueStats = revenueResult && revenueResult[0] ? revenueResult[0] : { today_revenue: 0, total_revenue: 0, today_completed_revenue: 0, today_transactions: 0, total_completed_transactions: 0 };
 
-            // Get new users today
-            const [newUsersResult] = await db.executeQuery(`
-                SELECT COUNT(*) as count FROM users 
-                WHERE DATE(created_at) = CURDATE() AND is_deleted IS NULL
+            // Get user analytics summary
+            const userAnalyticsResult = await db.executeQuery(`
+                SELECT 
+                    COUNT(*) as total_analytics_users,
+                    AVG(total_rides) as avg_rides_per_user,
+                    AVG(total_spent) as avg_spent_per_user,
+                    AVG(average_rating) as avg_user_rating,
+                    COUNT(CASE WHEN verification_status = 'verified' THEN 1 END) as verified_analytics_users,
+                    COUNT(CASE WHEN verification_status = 'pending' THEN 1 END) as pending_analytics_users
+                FROM user_analytics
             `);
-            const newUsersToday = newUsersResult.count;
+            const userAnalytics = userAnalyticsResult && userAnalyticsResult[0] ? userAnalyticsResult[0] : { total_analytics_users: 0, avg_rides_per_user: 0, avg_spent_per_user: 0, avg_user_rating: 0, verified_analytics_users: 0, pending_analytics_users: 0 };
 
-            // Get completed rides today
-            const [completedRidesResult] = await db.executeQuery(`
-                SELECT COUNT(*) as count FROM rides 
-                WHERE DATE(updated_at) = CURDATE() AND status = 'completed'
+            // Get ride analytics summary from ride_analytics table
+            const rideAnalyticsSummaryResult = await db.executeQuery(`
+                SELECT 
+                    COUNT(*) as total_analytics_rides,
+                    AVG(distance_km) as avg_distance,
+                    AVG(duration_minutes) as avg_duration,
+                    AVG(fare_amount) as avg_fare,
+                    AVG(commission_amount) as avg_commission,
+                    AVG(rating) as avg_ride_rating,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_analytics_rides,
+                    COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_analytics_rides
+                FROM ride_analytics
             `);
-            const completedRidesToday = completedRidesResult.count;
+            const rideAnalytics = rideAnalyticsSummaryResult && rideAnalyticsSummaryResult[0] ? rideAnalyticsSummaryResult[0] : { total_analytics_rides: 0, avg_distance: 0, avg_duration: 0, avg_fare: 0, avg_commission: 0, avg_ride_rating: 0, completed_analytics_rides: 0, cancelled_analytics_rides: 0 };
+
+            // Get today's statistics
+            const todayStatsResult = await db.executeQuery(`
+                SELECT 
+                    COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as new_users_today,
+                    COUNT(CASE WHEN DATE(created_at) = CURDATE() AND is_verified = 1 THEN 1 END) as verified_users_today
+                FROM users 
+                WHERE is_deleted IS NULL
+            `);
+            const todayStats = todayStatsResult && todayStatsResult[0] ? todayStatsResult[0] : { new_users_today: 0, verified_users_today: 0 };
+
+            // Get today's ride statistics from ride_analytics
+            const todayRidesResult = await db.executeQuery(`
+                SELECT 
+                    COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as rides_today,
+                    COUNT(CASE WHEN DATE(created_at) = CURDATE() AND status = 'completed' THEN 1 END) as completed_rides_today,
+                    COUNT(CASE WHEN DATE(created_at) = CURDATE() AND status = 'cancelled' THEN 1 END) as cancelled_rides_today
+                FROM ride_analytics
+            `);
+            const todayRides = todayRidesResult && todayRidesResult[0] ? todayRidesResult[0] : { rides_today: 0, completed_rides_today: 0, cancelled_rides_today: 0 };
 
             return {
-                totalUsers,
-                activeRides,
-                todayRevenue,
-                totalRevenue,
-                newUsersToday,
-                completedRidesToday
+                // User Statistics
+                totalUsers: userStats.total_users,
+                verifiedUsers: userStats.verified_users,
+                unverifiedUsers: userStats.unverified_users,
+                newUsersToday: todayStats.new_users_today,
+                verifiedUsersToday: todayStats.verified_users_today,
+                
+                // Ride Statistics (from ride_analytics table)
+                totalRides: rideStats.total_rides,
+                activeRides: rideStats.confirmed_rides + rideStats.started_rides + rideStats.in_progress_rides,
+                confirmedRides: rideStats.confirmed_rides,
+                startedRides: rideStats.started_rides,
+                inProgressRides: rideStats.in_progress_rides,
+                completedRides: rideStats.completed_rides,
+                cancelledRides: rideStats.cancelled_rides,
+                ridesToday: todayRides.rides_today,
+                completedRidesToday: todayRides.completed_rides_today,
+                cancelledRidesToday: todayRides.cancelled_rides_today,
+                
+                // Revenue Statistics
+                todayRevenue: parseFloat(revenueStats.today_revenue),
+                totalRevenue: parseFloat(revenueStats.total_revenue),
+                todayCompletedRevenue: parseFloat(revenueStats.today_completed_revenue),
+                todayTransactions: revenueStats.today_transactions,
+                totalCompletedTransactions: revenueStats.total_completed_transactions,
+                
+                // Analytics Averages
+                avgRidesPerUser: parseFloat(userAnalytics.avg_rides_per_user || 0),
+                avgSpentPerUser: parseFloat(userAnalytics.avg_spent_per_user || 0),
+                avgUserRating: parseFloat(userAnalytics.avg_user_rating || 0),
+                avgDistance: parseFloat(rideAnalytics.avg_distance || 0),
+                avgDuration: parseFloat(rideAnalytics.avg_duration || 0),
+                avgFare: parseFloat(rideAnalytics.avg_fare || 0),
+                avgCommission: parseFloat(rideAnalytics.avg_commission || 0),
+                avgRideRating: parseFloat(rideAnalytics.avg_ride_rating || 0)
             };
 
         } catch (error) {
             console.error('Error getting real-time stats:', error);
             return {
                 totalUsers: 0,
+                verifiedUsers: 0,
+                unverifiedUsers: 0,
+                newUsersToday: 0,
+                verifiedUsersToday: 0,
+                totalRides: 0,
                 activeRides: 0,
+                confirmedRides: 0,
+                startedRides: 0,
+                inProgressRides: 0,
+                completedRides: 0,
+                cancelledRides: 0,
+                ridesToday: 0,
+                completedRidesToday: 0,
+                cancelledRidesToday: 0,
                 todayRevenue: 0,
                 totalRevenue: 0,
-                newUsersToday: 0,
-                completedRidesToday: 0
+                todayCompletedRevenue: 0,
+                todayTransactions: 0,
+                totalCompletedTransactions: 0,
+                avgRidesPerUser: 0,
+                avgSpentPerUser: 0,
+                avgUserRating: 0,
+                avgDistance: 0,
+                avgDuration: 0,
+                avgFare: 0,
+                avgCommission: 0,
+                avgRideRating: 0
             };
         }
     }
@@ -109,28 +261,74 @@ class DashboardController {
      */
     static async getRecentActivity(limit = 15) {
         try {
-            // Get recent user registrations
+            // Get recent user registrations with analytics data
             const recentUsers = await db.executeQuery(`
-                SELECT id, email, first_name, last_name, created_at, 'user_registration' as type
-                FROM users 
-                WHERE is_deleted IS NULL 
-                ORDER BY created_at DESC 
+                SELECT 
+                    u.id, 
+                    u.email, 
+                    u.first_name, 
+                    u.last_name, 
+                    u.created_at, 
+                    u.is_verified,
+                    ua.total_rides,
+                    ua.total_spent,
+                    ua.average_rating,
+                    'user_registration' as type
+                FROM users u
+                LEFT JOIN user_analytics ua ON u.id = ua.user_id
+                WHERE u.is_deleted IS NULL 
+                ORDER BY u.created_at DESC 
                 LIMIT ${parseInt(limit)}
             `);
 
-            // Get recent rides
+            // Get recent rides with analytics data from ride_analytics table
             const recentRides = await db.executeQuery(`
-                SELECT id, status, created_at, 'ride_created' as type
-                FROM rides 
-                ORDER BY created_at DESC 
+                SELECT 
+                    ra.ride_id as id, 
+                    ra.status, 
+                    ra.created_at,
+                    ra.distance_km,
+                    ra.duration_minutes,
+                    ra.fare_amount,
+                    ra.commission_amount,
+                    ra.rating,
+                    ra.cancellation_reason,
+                    'ride_created' as type
+                FROM ride_analytics ra
+                ORDER BY ra.created_at DESC 
                 LIMIT ${parseInt(limit)}
             `);
 
-            // Get recent payments
+            // Get recent payments with more details
             const recentPayments = await db.executeQuery(`
-                SELECT id, amount, status, created_at, 'payment_processed' as type
+                SELECT 
+                    id, 
+                    amount, 
+                    status, 
+                    created_at,
+                    'payment_processed' as type
                 FROM payment_transactions 
                 ORDER BY created_at DESC 
+                LIMIT ${parseInt(limit)}
+            `);
+
+            // Get recent user analytics updates
+            const recentAnalytics = await db.executeQuery(`
+                SELECT 
+                    ua.id,
+                    u.email,
+                    u.first_name,
+                    u.last_name,
+                    ua.total_rides,
+                    ua.total_spent,
+                    ua.average_rating,
+                    ua.verification_status,
+                    ua.updated_at as created_at,
+                    'user_analytics_update' as type
+                FROM user_analytics ua
+                JOIN users u ON ua.user_id = u.id
+                WHERE u.is_deleted IS NULL
+                ORDER BY ua.updated_at DESC 
                 LIMIT ${parseInt(limit)}
             `);
 
@@ -138,18 +336,27 @@ class DashboardController {
             const allActivities = [
                 ...recentUsers.map(user => ({
                     ...user,
-                    message: `New user registered: ${user.email}`,
-                    icon: 'user-plus'
+                    message: `New user registered: ${user.email}${user.is_verified ? ' (Verified)' : ' (Pending)'}`,
+                    icon: 'user-plus',
+                    details: user.total_rides ? `${user.total_rides} rides, $${user.total_spent} spent` : 'New user'
                 })),
                 ...recentRides.map(ride => ({
                     ...ride,
-                    message: `Ride ${ride.status}: #${ride.id}`,
-                    icon: 'car'
+                    message: `Ride ${ride.status}: #${ride.id}${ride.fare_amount ? ` - $${ride.fare_amount}` : ''}`,
+                    icon: 'car',
+                    details: ride.distance_km ? `${ride.distance_km}km, ${ride.duration_minutes}min` : 'Ride created'
                 })),
                 ...recentPayments.map(payment => ({
                     ...payment,
                     message: `Payment ${payment.status}: $${payment.amount}`,
-                    icon: 'dollar-sign'
+                    icon: 'dollar-sign',
+                    details: 'Payment processed'
+                })),
+                ...recentAnalytics.map(analytics => ({
+                    ...analytics,
+                    message: `User activity update: ${analytics.email}`,
+                    icon: 'activity',
+                    details: `${analytics.total_rides} rides, $${analytics.total_spent} spent, ${analytics.average_rating || 'N/A'} rating`
                 }))
             ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
              .slice(0, limit);
@@ -205,26 +412,32 @@ class DashboardController {
             let dateFilter;
             switch (period) {
                 case '7d':
-                    dateFilter = 'DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
+                    dateFilter = 'DATE(u.created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
                     break;
                 case '30d':
-                    dateFilter = 'DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
+                    dateFilter = 'DATE(u.created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
                     break;
                 case '90d':
-                    dateFilter = 'DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)';
+                    dateFilter = 'DATE(u.created_at) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)';
                     break;
                 default:
-                    dateFilter = 'DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
+                    dateFilter = 'DATE(u.created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
             }
 
             const rows = await db.executeQuery(`
                 SELECT 
-                    DATE(created_at) as date,
+                    DATE(u.created_at) as date,
                     COUNT(*) as new_users,
-                    SUM(COUNT(*)) OVER (ORDER BY DATE(created_at)) as total_users
-                FROM users 
-                WHERE ${dateFilter} AND is_deleted IS NULL
-                GROUP BY DATE(created_at)
+                    COUNT(CASE WHEN u.is_verified = 1 THEN 1 END) as verified_users,
+                    COUNT(CASE WHEN u.is_verified = 0 THEN 1 END) as unverified_users,
+                    SUM(COUNT(*)) OVER (ORDER BY DATE(u.created_at)) as total_users,
+                    AVG(ua.total_rides) as avg_rides_per_user,
+                    AVG(ua.total_spent) as avg_spent_per_user,
+                    AVG(ua.average_rating) as avg_user_rating
+                FROM users u
+                LEFT JOIN user_analytics ua ON u.id = ua.user_id
+                WHERE ${dateFilter} AND u.is_deleted IS NULL
+                GROUP BY DATE(u.created_at)
                 ORDER BY date
             `);
 
@@ -260,9 +473,16 @@ class DashboardController {
                 SELECT 
                     DATE(created_at) as date,
                     SUM(amount) as daily_revenue,
+                    SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END) as completed_revenue,
+                    SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) as pending_revenue,
+                    SUM(CASE WHEN status = 'failed' THEN amount ELSE 0 END) as failed_revenue,
+                    COUNT(*) as total_transactions,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_transactions,
+                    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_transactions,
+                    COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_transactions,
                     SUM(SUM(amount)) OVER (ORDER BY DATE(created_at)) as cumulative_revenue
                 FROM payment_transactions 
-                WHERE ${dateFilter} AND status = 'completed'
+                WHERE ${dateFilter}
                 GROUP BY DATE(created_at)
                 ORDER BY date
             `);
@@ -283,25 +503,32 @@ class DashboardController {
             let dateFilter;
             switch (period) {
                 case '7d':
-                    dateFilter = 'DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
+                    dateFilter = 'DATE(ra.created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
                     break;
                 case '30d':
-                    dateFilter = 'DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
+                    dateFilter = 'DATE(ra.created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
                     break;
                 case '90d':
-                    dateFilter = 'DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)';
+                    dateFilter = 'DATE(ra.created_at) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)';
                     break;
                 default:
-                    dateFilter = 'DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
+                    dateFilter = 'DATE(ra.created_at) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
             }
 
             const rows = await db.executeQuery(`
                 SELECT 
-                    status,
-                    COUNT(*) as count
-                FROM rides 
+                    ra.status,
+                    COUNT(*) as count,
+                    AVG(ra.distance_km) as avg_distance,
+                    AVG(ra.duration_minutes) as avg_duration,
+                    AVG(ra.fare_amount) as avg_fare,
+                    AVG(ra.commission_amount) as avg_commission,
+                    AVG(ra.rating) as avg_rating,
+                    SUM(ra.fare_amount) as total_fare,
+                    SUM(ra.commission_amount) as total_commission
+                FROM ride_analytics ra
                 WHERE ${dateFilter}
-                GROUP BY status
+                GROUP BY ra.status
                 ORDER BY count DESC
             `);
 

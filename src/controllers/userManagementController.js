@@ -119,7 +119,7 @@ class UserManagementController {
       const { id } = req.params;
 
       // Get user with analytics
-      const [userRows] = await db.executeQuery(`
+      const userRows = await db.executeQuery(`
         SELECT 
           u.*,
           ua.total_rides,
@@ -149,7 +149,7 @@ class UserManagementController {
       // Get recent rides (if rides table exists)
       let recentRides = [];
       try {
-        const [rideRows] = await db.executeQuery(`
+        const rideRows = await db.executeQuery(`
           SELECT id, status, created_at, pickup_location, dropoff_location
           FROM rides 
           WHERE user_id = ? 
@@ -165,7 +165,7 @@ class UserManagementController {
       // Get recent payments (if payment_transactions table exists)
       let recentPayments = [];
       try {
-        const [paymentRows] = await db.executeQuery(`
+        const paymentRows = await db.executeQuery(`
           SELECT id, amount, status, created_at, payment_method
           FROM payment_transactions 
           WHERE user_id = ? 
@@ -206,7 +206,7 @@ class UserManagementController {
       const updateData = req.body;
 
       // Check if user exists
-      const [userRows] = await db.executeQuery('SELECT * FROM users WHERE id = ? AND is_deleted IS NULL', [id]);
+      const userRows = await db.executeQuery('SELECT * FROM users WHERE id = ? AND is_deleted IS NULL', [id]);
       if (!userRows.length) {
         return res.status(404).json({
           success: false,
@@ -219,7 +219,7 @@ class UserManagementController {
       const values = Object.values(updateData);
       values.push(id);
       
-      const [updateResult] = await db.executeQuery(`
+      const updateResult = await db.executeQuery(`
         UPDATE users 
         SET ${fields}, updated_at = CURRENT_TIMESTAMP 
         WHERE id = ?
@@ -257,7 +257,7 @@ class UserManagementController {
       const { id } = req.params;
 
       // Check if user exists
-      const [userRows] = await db.executeQuery('SELECT * FROM users WHERE id = ? AND is_deleted IS NULL', [id]);
+      const userRows = await db.executeQuery('SELECT * FROM users WHERE id = ? AND is_deleted IS NULL', [id]);
       if (!userRows.length) {
         return res.status(404).json({
           success: false,
@@ -266,7 +266,7 @@ class UserManagementController {
       }
 
       // Soft delete user
-      const [deleteResult] = await db.executeQuery(`
+      const deleteResult = await db.executeQuery(`
         UPDATE users 
         SET is_deleted = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP 
         WHERE id = ?
@@ -332,7 +332,7 @@ class UserManagementController {
       const { is_active } = req.body;
 
       // Check if user exists
-      const [userRows] = await db.executeQuery('SELECT * FROM users WHERE id = ? AND is_deleted IS NULL', [id]);
+      const userRows = await db.executeQuery('SELECT * FROM users WHERE id = ? AND is_deleted IS NULL', [id]);
       if (!userRows.length) {
         return res.status(404).json({
           success: false,
@@ -341,7 +341,7 @@ class UserManagementController {
       }
 
       // Update user status
-      const [updateResult] = await db.executeQuery(`
+      const updateResult = await db.executeQuery(`
         UPDATE users 
         SET is_active = ?, updated_at = CURRENT_TIMESTAMP 
         WHERE id = ?
@@ -412,7 +412,7 @@ class UserManagementController {
       const reportsSummary = await UserReport.getSummary();
 
       // Get total users count
-      const [userCountResult] = await db.executeQuery(`
+      const userCountResult = await db.executeQuery(`
         SELECT 
           COUNT(*) as total_users,
           COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_users,
@@ -447,7 +447,7 @@ class UserManagementController {
       const { format = 'json' } = req.query;
 
       // Get all users with analytics
-      const [rows] = await db.executeQuery(`
+      const rows = await db.executeQuery(`
         SELECT 
           u.id,
           u.email,

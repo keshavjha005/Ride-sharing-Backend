@@ -1,19 +1,9 @@
-const mysql = require('mysql2/promise');
-const config = require('../../config');
+const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcrypt');
 
-async function createAdminTables() {
-    let connection;
+module.exports = {
+  up: async (connection) => {
     try {
-        console.log('Creating admin tables...');
-        
-        // Create database connection
-        connection = await mysql.createConnection({
-            host: config.database.host,
-            user: config.database.user,
-            password: config.database.password,
-            database: config.database.database,
-            port: config.database.port
-        });
 
         // Create admin_users table
         await connection.execute(`
@@ -252,7 +242,8 @@ async function createAdminTables() {
                 analytics: ['read'],
                 settings: ['read', 'write'],
                 reports: ['read', 'write'],
-                localization: ['read', 'write']
+                localization: ['read', 'write'],
+                admin_management: ['read', 'write', 'delete']
             }),
             'en',
             'UTC',
@@ -322,11 +313,6 @@ async function createAdminTables() {
     } catch (error) {
         console.error('Error creating admin tables:', error);
         throw error;
-    } finally {
-        if (connection) {
-            await connection.end();
-        }
     }
-}
-
-module.exports = createAdminTables; 
+  }
+}; 
