@@ -5,7 +5,7 @@ class VehicleBrand {
   constructor(data) {
     this.id = data.id || uuidv4();
     this.name = data.name;
-    this.logo = data.logo;
+    this.logo_url = data.logo_url;
     this.is_active = data.is_active !== undefined ? data.is_active : true;
     this.created_at = data.created_at || new Date();
   }
@@ -62,14 +62,14 @@ class VehicleBrand {
       if (this.id) {
         // Update existing brand
         await db.executeQuery(
-          'UPDATE vehicle_brands SET name = ?, logo = ?, is_active = ? WHERE id = ?',
-          [this.name, this.logo, this.is_active, this.id]
+          'UPDATE vehicle_brands SET name = ?, logo_url = ?, is_active = ? WHERE id = ?',
+          [this.name, this.logo_url, this.is_active, this.id]
         );
       } else {
         // Create new brand
         await db.executeQuery(
-          'INSERT INTO vehicle_brands (id, name, logo, is_active) VALUES (?, ?, ?, ?)',
-          [this.id, this.name, this.logo, this.is_active]
+          'INSERT INTO vehicle_brands (id, name, logo_url, is_active) VALUES (?, ?, ?, ?)',
+          [this.id, this.name, this.logo_url, this.is_active]
         );
       }
       

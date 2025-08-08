@@ -7,7 +7,9 @@ const Badge = ({ children, variant = 'default', className = '', ...props }) => {
     default: 'bg-primary text-white hover:bg-primary-dark',
     secondary: 'bg-background-secondary text-text-primary hover:bg-background-tertiary',
     destructive: 'bg-error text-white hover:bg-red-600',
-    outline: 'text-text-primary border border-border hover:bg-background-tertiary hover:text-text-primary'
+    outline: 'text-text-primary border border-border hover:bg-background-tertiary hover:text-text-primary',
+    success: 'bg-success text-white hover:bg-green-600',
+    warning: 'bg-warning text-black hover:bg-yellow-600'
   };
   
   const classes = `${baseClasses} ${variantClasses[variant]} ${className}`;

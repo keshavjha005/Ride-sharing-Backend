@@ -8,11 +8,12 @@ import { Switch } from '../../../../components/ui/Switch';
 import { Badge } from '../../../../components/ui/Badge';
 import { X, Save, Eye, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
+import BrandLogo from '../../../../components/ui/BrandLogo';
 
 const VehicleBrandModal = ({ isOpen, onClose, onSuccess, editingBrand, viewingBrand }) => {
   const [formData, setFormData] = useState({
     name: '',
-    logo: '',
+    logo_url: '',
     is_active: true
   });
   const [loading, setLoading] = useState(false);
@@ -26,19 +27,19 @@ const VehicleBrandModal = ({ isOpen, onClose, onSuccess, editingBrand, viewingBr
     if (editingBrand) {
       setFormData({
         name: editingBrand.name || '',
-        logo: editingBrand.logo || '',
+        logo_url: editingBrand.logo_url || '',
         is_active: editingBrand.is_active ?? true
       });
     } else if (viewingBrand) {
       setFormData({
         name: viewingBrand.name || '',
-        logo: viewingBrand.logo || '',
+        logo_url: viewingBrand.logo_url || '',
         is_active: viewingBrand.is_active ?? true
       });
     } else {
       setFormData({
         name: '',
-        logo: '',
+        logo_url: '',
         is_active: true
       });
     }
@@ -152,25 +153,18 @@ const VehicleBrandModal = ({ isOpen, onClose, onSuccess, editingBrand, viewingBr
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Logo Preview */}
-            {formData.logo && (
-              <div className="space-y-2">
-                <Label className="text-text-primary">Logo Preview</Label>
-                <div className="flex justify-center">
-                  <img 
-                    src={formData.logo} 
-                    alt="Brand logo"
-                    className="w-32 h-32 object-contain rounded-lg border border-border"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <div className="w-32 h-32 bg-background-secondary rounded-lg border border-border flex items-center justify-center hidden">
-                    <span className="text-text-muted text-sm">Invalid URL</span>
-                  </div>
-                </div>
+            <div className="space-y-2">
+              <Label className="text-text-primary">Logo Preview</Label>
+              <div className="flex justify-center">
+                <BrandLogo 
+                  logoUrl={formData.logo_url} 
+                  brandName={formData.name || 'Brand'}
+                  size="2xl"
+                  showFallbackText={true}
+                  lazy={false}
+                />
               </div>
-            )}
+            </div>
 
             {/* Name */}
             <div className="space-y-2">
@@ -192,23 +186,23 @@ const VehicleBrandModal = ({ isOpen, onClose, onSuccess, editingBrand, viewingBr
 
             {/* Logo URL */}
             <div className="space-y-2">
-              <Label htmlFor="logo" className="text-text-primary">
+              <Label htmlFor="logo_url" className="text-text-primary">
                 Logo URL
               </Label>
               <Input
-                id="logo"
+                id="logo_url"
                 type="url"
-                value={formData.logo}
-                onChange={(e) => handleInputChange('logo', e.target.value)}
-                placeholder="https://example.com/logo.png"
+                value={formData.logo_url}
+                onChange={(e) => handleInputChange('logo_url', e.target.value)}
+                placeholder="/images/vehicle-brands/brand-name.png or https://example.com/logo.png"
                 disabled={isViewMode}
-                className={errors.logo ? 'border-error' : ''}
+                className={errors.logo_url ? 'border-error' : ''}
               />
-              {errors.logo && (
-                <p className="text-sm text-error">{errors.logo}</p>
+              {errors.logo_url && (
+                <p className="text-sm text-error">{errors.logo_url}</p>
               )}
               <p className="text-xs text-text-muted">
-                Enter a valid URL for the brand logo
+                Enter a valid URL for the brand logo (local or external)
               </p>
             </div>
 

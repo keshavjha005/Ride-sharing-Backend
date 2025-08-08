@@ -66,10 +66,8 @@ const VehicleManagement = () => {
 
   if (authLoading || loading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -80,9 +78,9 @@ const VehicleManagement = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-text-primary mb-2">
             Vehicle Management
@@ -105,66 +103,58 @@ const VehicleManagement = () => {
 
       {/* Analytics Overview */}
       {analytics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="bg-background-secondary border-border">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
+                <div className="p-3 bg-primary/10 rounded-lg shadow-panel">
                   <Type className="h-6 w-6 text-primary" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-text-secondary">Vehicle Types</p>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-text-secondary mb-1">Vehicle Types</p>
                   <p className="text-2xl font-bold text-text-primary">{analytics.overview?.totalTypes || 0}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-background-secondary border-border">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <Building2 className="h-6 w-6 text-primary" />
+                <div className="p-3 bg-info/10 rounded-lg shadow-panel">
+                  <Building2 className="h-6 w-6 text-info" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-text-secondary">Brands</p>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-text-secondary mb-1">Brands</p>
                   <p className="text-2xl font-bold text-text-primary">{analytics.overview?.totalBrands || 0}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-background-secondary border-border">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <Truck className="h-6 w-6 text-primary" />
+                <div className="p-3 bg-warning/10 rounded-lg shadow-panel">
+                  <Truck className="h-6 w-6 text-warning" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-text-secondary">Models</p>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-text-secondary mb-1">Models</p>
                   <p className="text-2xl font-bold text-text-primary">{analytics.overview?.totalModels || 0}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-background-secondary border-border">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <Users className="h-6 w-6 text-primary" />
+                <div className="p-3 bg-success/10 rounded-lg shadow-panel">
+                  <Users className="h-6 w-6 text-success" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-text-secondary">User Vehicles</p>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-text-secondary mb-1">User Vehicles</p>
                   <p className="text-2xl font-bold text-text-primary">{analytics.overview?.totalUserVehicles || 0}</p>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <Badge variant="success" className="text-xs">
-                      {analytics.overview?.verifiedVehicles || 0} Verified
-                    </Badge>
-                    <Badge variant="warning" className="text-xs">
-                      {analytics.overview?.unverifiedVehicles || 0} Pending
-                    </Badge>
-                  </div>
                 </div>
               </div>
             </CardContent>

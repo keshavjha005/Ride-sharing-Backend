@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import VehicleBrandModal from './modals/VehicleBrandModal';
+import BrandLogo from '../../../components/ui/BrandLogo';
 
 const VehicleBrandsManagement = () => {
   const { admin, loading: authLoading } = useAuth();
@@ -277,17 +278,12 @@ const VehicleBrandsManagement = () => {
                       />
                     </td>
                     <td className="p-4">
-                      {brand.logo ? (
-                        <img 
-                          src={brand.logo} 
-                          alt={brand.name}
-                          className="w-12 h-12 object-contain rounded-lg border border-border"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-background-secondary rounded-lg border border-border flex items-center justify-center">
-                          <span className="text-text-muted text-xs">No Logo</span>
-                        </div>
-                      )}
+                      <BrandLogo 
+                        logoUrl={brand.logo_url} 
+                        brandName={brand.name}
+                        size="md"
+                        showFallbackText={true}
+                      />
                     </td>
                     <td className="p-4">
                       <div>

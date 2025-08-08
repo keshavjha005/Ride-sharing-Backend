@@ -124,10 +124,10 @@ router.delete('/rides/:id', adminAuth, RideManagementController.deleteRide);
 // router.post('/ride-disputes/:id/resolution', adminAuth, RideDisputesController.addDisputeResolution);
 
 // Localization Management routes (admin auth required)
-// router.get('/localized-content', adminAuth, AdminLocalizationController.getAdminLocalizedContent);
-// router.post('/localized-content', adminAuth, AdminLocalizationController.createAdminLocalizedContent);
-// router.put('/localized-content/:id', adminAuth, AdminLocalizationController.updateAdminLocalizedContent);
-// router.delete('/localized-content/:id', adminAuth, AdminLocalizationController.deleteAdminLocalizedContent);
+router.get('/localized-content', adminAuth, AdminLocalizationController.getAdminLocalizedContent);
+router.post('/localized-content', adminAuth, AdminLocalizationController.createAdminLocalizedContent);
+router.put('/localized-content/:id', adminAuth, AdminLocalizationController.updateAdminLocalizedContent);
+router.delete('/localized-content/:id', adminAuth, AdminLocalizationController.deleteAdminLocalizedContent);
 // router.get('/language-settings', adminAuth, AdminLocalizationController.getLanguageSettings);
 // router.put('/language-settings', adminAuth, AdminLocalizationController.updateLanguageSettings);
 // router.get('/translations', adminAuth, AdminLocalizationController.getTranslationManagement);

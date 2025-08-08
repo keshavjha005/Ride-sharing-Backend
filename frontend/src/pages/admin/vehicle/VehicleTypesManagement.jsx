@@ -198,9 +198,9 @@ const VehicleTypesManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-text-primary">Vehicle Types</h2>
           <p className="text-text-secondary">Manage vehicle types and their pricing</p>
@@ -226,7 +226,7 @@ const VehicleTypesManagement = () => {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="mb-6">
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
@@ -276,7 +276,7 @@ const VehicleTypesManagement = () => {
 
       {/* Bulk Actions */}
       {selectedTypes.length > 0 && (
-        <Card>
+        <Card className="mb-6">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-text-secondary">
@@ -443,7 +443,7 @@ const VehicleTypesManagement = () => {
           viewingType={viewingType}
         />
       )}
-    </div>
+    </>
   );
 };
 
