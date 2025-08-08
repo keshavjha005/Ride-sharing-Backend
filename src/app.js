@@ -16,6 +16,7 @@ dotenv.config();
 const config = require('./config');
 const logger = require('./utils/logger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+const metricsMiddleware = require('./middleware/metricsMiddleware');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -82,6 +83,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 if (config.features.enableLogging) {
   app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 }
+
+// Metrics tracking middleware
+app.use(metricsMiddleware);
 
 // Rate limiting
 if (config.features.enableRateLimiting) {
@@ -205,7 +209,8 @@ process.on('uncaughtException', (error) => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  // Log but don't exit immediately to allow graceful handling
+  console.error('Unhandled Rejection:', reason);
 });
 
 module.exports = app; 

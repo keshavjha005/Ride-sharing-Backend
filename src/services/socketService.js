@@ -15,29 +15,41 @@ class SocketService {
 
   // Initialize Socket.io server
   initialize(server) {
-    this.io = new Server(server, {
-      cors: {
-        origin: config.cors.origin,
-        credentials: config.cors.credentials,
-        methods: ['GET', 'POST']
-      },
-      transports: ['websocket', 'polling'],
-      allowEIO3: true,
-      pingTimeout: 60000,
-      pingInterval: 25000,
-      maxHttpBufferSize: 1e6, // 1MB
-      connectTimeout: 45000,
-    });
+    try {
+      if (!server || !server.listen) {
+        throw new Error('Invalid HTTP server instance provided');
+      }
 
-    this.setupMiddleware();
-    this.setupEventHandlers();
-    
-    logger.info('WebSocket server initialized', {
-      cors: config.cors.origin,
-      transports: ['websocket', 'polling']
-    });
+      this.io = new Server(server, {
+        cors: {
+          origin: config.cors.origin,
+          credentials: config.cors.credentials,
+          methods: ['GET', 'POST']
+        },
+        transports: ['websocket', 'polling'],
+        allowEIO3: true,
+        pingTimeout: 60000,
+        pingInterval: 25000,
+        maxHttpBufferSize: 1e6, // 1MB
+        connectTimeout: 45000,
+      });
 
-    return this.io;
+      this.setupMiddleware();
+      this.setupEventHandlers();
+      
+      logger.info('WebSocket server initialized', {
+        cors: config.cors.origin,
+        transports: ['websocket', 'polling']
+      });
+
+      return this.io;
+    } catch (error) {
+      logger.error('Failed to initialize WebSocket server:', {
+        error: error.message,
+        stack: error.stack
+      });
+      throw error; // Re-throw to be handled by server.js
+    }
   }
 
   // Setup Socket.io middleware for authentication

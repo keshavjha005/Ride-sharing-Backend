@@ -7,12 +7,24 @@ const UserReportsController = require('../controllers/userReportsController');
 const RideManagementController = require('../controllers/rideManagementController');
 const RideDisputesController = require('../controllers/rideDisputesController');
 const AdminLocalizationController = require('../controllers/adminLocalizationController');
-const SystemConfigController = require('../controllers/systemConfigController');
+const SystemSettingsController = require('../controllers/systemSettingsController');
+const SystemMonitoringController = require('../controllers/systemMonitoringController');
+const systemMonitoringController = new SystemMonitoringController();
 const ReportingController = require('../controllers/reportingController');
 const AdminManagementController = require('../controllers/adminManagementController');
 const AdminPricingController = require('../controllers/adminPricingController');
 const AdminVehicleController = require('../controllers/adminVehicleController');
 const { adminAuth, adminRoleAuth, adminPermissionAuth } = require('../middleware/adminAuth');
+
+// Define required permissions for different operations
+const PERMISSIONS = {
+  ADMIN_MANAGEMENT: 'admin_management',
+  USER_MANAGEMENT: 'user_management',
+  RIDE_MANAGEMENT: 'ride_management',
+  SYSTEM_SETTINGS: 'system_settings',
+  PRICING_MANAGEMENT: 'pricing_management',
+  REPORTING: 'reporting'
+};
 
 // Admin authentication routes (no auth required)
 router.post('/auth/login', AdminAuthController.login);
@@ -30,14 +42,54 @@ router.get('/dashboard/analytics', adminAuth, DashboardController.getAnalytics);
 router.put('/dashboard/layout', adminAuth, DashboardController.updateLayout);
 
 // Admin Management routes (super admin only)
-router.get('/admin-management', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getAdmins);
-router.get('/admin-management/roles-permissions', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getRolesAndPermissions);
-router.get('/admin-management/stats', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getAdminStats);
-router.get('/admin-management/:id', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.getAdminById);
-router.post('/admin-management', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.createAdmin);
-router.put('/admin-management/:id', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.updateAdmin);
-router.delete('/admin-management/:id', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.deleteAdmin);
-router.put('/admin-management/:id/toggle-status', adminAuth, adminPermissionAuth('admin_management'), AdminManagementController.toggleAdminStatus);
+router.get('/admin-management', 
+  adminAuth, 
+  adminRoleAuth('super_admin'),
+  adminPermissionAuth(PERMISSIONS.ADMIN_MANAGEMENT), 
+  AdminManagementController.getAdmins
+);
+router.get('/admin-management/roles-permissions', 
+  adminAuth, 
+  adminRoleAuth('super_admin'),
+  adminPermissionAuth(PERMISSIONS.ADMIN_MANAGEMENT), 
+  AdminManagementController.getRolesAndPermissions
+);
+router.get('/admin-management/stats', 
+  adminAuth, 
+  adminRoleAuth('super_admin'),
+  adminPermissionAuth(PERMISSIONS.ADMIN_MANAGEMENT), 
+  AdminManagementController.getAdminStats
+);
+router.get('/admin-management/:id', 
+  adminAuth, 
+  adminRoleAuth('super_admin'),
+  adminPermissionAuth(PERMISSIONS.ADMIN_MANAGEMENT), 
+  AdminManagementController.getAdminById
+);
+router.post('/admin-management', 
+  adminAuth, 
+  adminRoleAuth('super_admin'),
+  adminPermissionAuth(PERMISSIONS.ADMIN_MANAGEMENT), 
+  AdminManagementController.createAdmin
+);
+router.put('/admin-management/:id', 
+  adminAuth, 
+  adminRoleAuth('super_admin'),
+  adminPermissionAuth(PERMISSIONS.ADMIN_MANAGEMENT), 
+  AdminManagementController.updateAdmin
+);
+router.delete('/admin-management/:id', 
+  adminAuth, 
+  adminRoleAuth('super_admin'),
+  adminPermissionAuth(PERMISSIONS.ADMIN_MANAGEMENT), 
+  AdminManagementController.deleteAdmin
+);
+router.put('/admin-management/:id/toggle-status', 
+  adminAuth, 
+  adminRoleAuth('super_admin'),
+  adminPermissionAuth(PERMISSIONS.ADMIN_MANAGEMENT), 
+  AdminManagementController.toggleAdminStatus
+);
 
 // User Management routes (admin auth required)
 router.get('/users', adminAuth, UserManagementController.getUsers);
@@ -82,13 +134,39 @@ router.delete('/rides/:id', adminAuth, RideManagementController.deleteRide);
 // router.put('/translations/:id', adminAuth, AdminLocalizationController.updateTranslation);
 
 // System Configuration routes (admin auth required)
-// router.get('/system-settings', adminAuth, SystemConfigController.getSystemSettings);
-// router.put('/system-settings', adminAuth, SystemConfigController.updateSystemSetting);
-// router.get('/system-settings/categories', adminAuth, SystemConfigController.getSystemSettingsCategories);
-// router.get('/feature-flags', adminAuth, SystemConfigController.getFeatureFlags);
-// router.put('/feature-flags', adminAuth, SystemConfigController.updateFeatureFlag);
-// router.get('/system-health', adminAuth, SystemConfigController.getSystemHealth);
-// router.get('/system-health/logs', adminAuth, SystemConfigController.getSystemHealthLogs);
+router.get('/system-settings', 
+  adminAuth, 
+  adminPermissionAuth(PERMISSIONS.SYSTEM_SETTINGS), 
+  SystemSettingsController.getSettings
+);
+router.get('/system-settings/:key', 
+  adminAuth, 
+  adminPermissionAuth(PERMISSIONS.SYSTEM_SETTINGS), 
+  SystemSettingsController.getSetting
+);
+router.put('/system-settings/:key', 
+  adminAuth, 
+  adminPermissionAuth(PERMISSIONS.SYSTEM_SETTINGS), 
+  SystemSettingsController.updateSetting
+);
+
+// System Monitoring routes (admin auth required)
+router.get('/system-monitoring/health', 
+  adminAuth, 
+  systemMonitoringController.getSystemHealth.bind(systemMonitoringController)
+);
+router.get('/system-monitoring/metrics', 
+  adminAuth, 
+  systemMonitoringController.getSystemMetrics.bind(systemMonitoringController)
+);
+router.get('/system-monitoring/logs', 
+  adminAuth, 
+  systemMonitoringController.getSystemLogs.bind(systemMonitoringController)
+);
+router.get('/system-monitoring/audit-logs', 
+  adminAuth, 
+  systemMonitoringController.getAuditLogs.bind(systemMonitoringController)
+);
 
 // Reporting routes (admin auth required)
 // router.get('/scheduled-reports', adminAuth, ReportingController.getScheduledReports);

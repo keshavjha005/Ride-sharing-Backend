@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
+const DashboardWidget = require('./DashboardWidget');
 
 class DashboardLayout {
     constructor(data) {
@@ -206,7 +207,7 @@ class DashboardLayout {
             }
 
             const layoutConfig = layout.getLayoutConfig();
-            const DashboardWidget = require('./DashboardWidget');
+            // DashboardWidget is already required at the top
 
             // Get all widgets
             const widgets = await DashboardWidget.findAllActive(language);

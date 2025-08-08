@@ -1,6 +1,26 @@
 const winston = require('winston');
 const path = require('path');
-const config = require('../config');
+require('dotenv').config();
+
+// Get environment variables directly to avoid circular dependency
+const environment = process.env.NODE_ENV || 'development';
+const logLevel = process.env.LOG_LEVEL || 'info';
+const logFile = process.env.LOG_FILE || path.join(__dirname, '../../logs/app.log');
+const appVersion = process.env.APP_VERSION || '1.0.0';
+
+// Helper function to handle circular references in objects
+const getCircularReplacer = () => {
+  const seen = new WeakSet();
+  return (key, value) => {
+    if (typeof value === "object" && value !== null) {
+      if (seen.has(value)) {
+        return '[Circular]';
+      }
+      seen.add(value);
+    }
+    return value;
+  };
+};
 
 // Define log format
 const logFormat = winston.format.combine(
@@ -73,39 +93,39 @@ const consoleFormat = winston.format.combine(
 
 // Create logger instance
 const logger = winston.createLogger({
-  level: config.logging.level,
+  level: logLevel,
   format: logFormat,
   defaultMeta: {
     service: 'mate-backend',
-    environment: config.server.environment,
-    version: config.server.version,
+    environment: environment,
+    version: appVersion,
   },
   transports: [
     // Console transport
     new winston.transports.Console({
       format: consoleFormat,
-      level: config.server.environment === 'production' ? 'info' : 'debug',
+      level: environment === 'production' ? 'info' : 'debug',
     }),
   ],
   exceptionHandlers: [
     new winston.transports.File({
-      filename: path.join(config.logging.file, '../exceptions.log'),
+      filename: path.join(logFile, '../exceptions.log'),
       format: logFormat,
     }),
   ],
   rejectionHandlers: [
     new winston.transports.File({
-      filename: path.join(config.logging.file, '../rejections.log'),
+      filename: path.join(logFile, '../rejections.log'),
       format: logFormat,
     }),
   ],
 });
 
 // Add file transport for production
-if (config.server.environment === 'production') {
+if (environment === 'production') {
   logger.add(
     new winston.transports.File({
-      filename: config.logging.file,
+      filename: logFile,
       format: logFormat,
       maxsize: 5242880, // 5MB
       maxFiles: 5,
@@ -115,7 +135,7 @@ if (config.server.environment === 'production') {
   // Error file transport
   logger.add(
     new winston.transports.File({
-      filename: path.join(config.logging.file, '../error.log'),
+      filename: path.join(logFile, '../error.log'),
       level: 'error',
       format: logFormat,
       maxsize: 5242880, // 5MB

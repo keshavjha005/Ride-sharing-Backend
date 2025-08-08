@@ -10,7 +10,8 @@ import UserReportDetail from './pages/admin/UserReportDetail'
 import RideManagement from './pages/admin/RideManagement'
 import RideDisputes from './pages/admin/RideDisputes'
 import LocalizationManagement from './pages/admin/LocalizationManagement'
-import SystemConfiguration from './pages/admin/SystemConfiguration'
+import Settings from './pages/admin/Settings'
+import SystemMonitoring from './pages/admin/SystemMonitoring'
 import Analytics from './pages/admin/Analytics'
 import Reports from './pages/admin/Reports'
 import AdminManagement from './pages/admin/AdminManagement'
@@ -50,7 +51,8 @@ function App() {
           <Route path="pricing" element={<PricingManagement />} />
           <Route path="vehicles" element={<VehicleManagement />} />
           <Route path="profile" element={<AdminProfile />} />
-          <Route path="settings" element={<SystemConfiguration />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="system-monitoring" element={<SystemMonitoring />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="reports" element={<Reports />} />
           {/* Add more admin routes here as we implement them */}

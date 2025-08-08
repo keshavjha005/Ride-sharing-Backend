@@ -13,7 +13,8 @@ import {
   Cog,
   CheckSquare,
   DollarSign,
-  Truck
+  Truck,
+  Activity
 } from 'lucide-react'
 import { useAuth } from '../../utils/AuthContext'
 
@@ -85,7 +86,12 @@ const Sidebar = () => {
     {
       path: '/admin/settings',
       icon: Cog,
-      label: 'System Configuration'
+      label: 'Settings'
+    },
+    {
+      path: '/admin/system-monitoring',
+      icon: Activity,
+      label: 'System Monitoring'
     }
   ]
 

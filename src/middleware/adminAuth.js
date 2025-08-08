@@ -1,130 +1,128 @@
 const jwt = require('jsonwebtoken');
-const AdminUser = require('../models/AdminUser');
-const config = require('../config');
+const { executeQuery } = require('../config/database');
+const logger = require('../utils/logger');
 
-/**
- * Admin authentication middleware
- */
 const adminAuth = async (req, res, next) => {
-    try {
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: 'Access token required'
-            });
-        }
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
 
-        // Verify token
-        const decoded = jwt.verify(token, config.admin.jwtSecret);
-        
-        // Find admin user
-        const adminUser = await AdminUser.findById(decoded.adminId);
-        if (!adminUser || !adminUser.is_active) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid or expired session'
-            });
-        }
-
-        // Add admin user to request
-        req.admin = {
-            id: adminUser.id,
-            email: adminUser.email,
-            role: adminUser.role,
-            permissions: adminUser.permissions
-        };
-
-        next();
-    } catch (error) {
-        console.error('Admin auth error:', error);
-        
-        if (error.name === 'JsonWebTokenError') {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid token'
-            });
-        }
-        
-        if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({
-                success: false,
-                message: 'Token expired'
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Authentication error'
-        });
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      });
     }
-};
 
-/**
- * Admin role-based authorization middleware
- */
-const adminRoleAuth = (requiredRoles = []) => {
-    return (req, res, next) => {
-        if (!req.admin) {
-            return res.status(401).json({
-                success: false,
-                message: 'Authentication required'
-            });
-        }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
 
-        // Super admin has access to everything
-        if (req.admin.role === 'super_admin') {
-            return next();
-        }
+    // Get admin from database with permissions
+    const admins = await executeQuery(
+      `SELECT 
+        id, 
+        role, 
+        is_active,
+        permissions
+      FROM admin_users 
+      WHERE id = ?`,
+      [decoded.id]
+    );
 
-        // Check if user has required role
-        if (requiredRoles.length > 0 && !requiredRoles.includes(req.admin.role)) {
-            return res.status(403).json({
-                success: false,
-                message: 'Insufficient permissions'
-            });
-        }
+    if (!admins || admins.length === 0 || !admins[0].is_active) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or inactive admin account'
+      });
+    }
 
-        next();
+    // Parse permissions from JSON field
+    const permissions = admins[0].permissions ? 
+      (typeof admins[0].permissions === 'string' ? 
+        JSON.parse(admins[0].permissions) : 
+        admins[0].permissions) : 
+      [];
+
+    // Add admin to request
+    req.admin = {
+      id: admins[0].id,
+      role: admins[0].role,
+      permissions: permissions
     };
+
+    next();
+  } catch (error) {
+    logger.error('Admin auth error:', error);
+    res.status(401).json({
+      success: false,
+      message: 'Authentication failed'
+    });
+  }
 };
 
-/**
- * Admin permission-based authorization middleware
- */
-const adminPermissionAuth = (requiredPermission) => {
-    return (req, res, next) => {
-        if (!req.admin) {
-            return res.status(401).json({
-                success: false,
-                message: 'Authentication required'
-            });
-        }
+const adminRoleAuth = (requiredRole) => (req, res, next) => {
+  try {
+    if (!req.admin) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
 
-        // Super admin has all permissions
-        if (req.admin.role === 'super_admin') {
-            return next();
-        }
-
-        // Check if user has required permission
-        const permissions = typeof req.admin.permissions === 'string' 
-            ? JSON.parse(req.admin.permissions) 
-            : req.admin.permissions;
-
-        if (!permissions[requiredPermission]) {
-            return res.status(403).json({
-                success: false,
-                message: 'Insufficient permissions'
-            });
-        }
-
-        next();
+    const roles = {
+      super_admin: 3,
+      admin: 2,
+      moderator: 1
     };
+
+    const userRoleLevel = roles[req.admin.role] || 0;
+    const requiredRoleLevel = roles[requiredRole] || 0;
+
+    if (userRoleLevel < requiredRoleLevel) {
+      return res.status(403).json({
+        success: false,
+        message: 'Insufficient role permissions'
+      });
+    }
+
+    next();
+  } catch (error) {
+    logger.error('Admin role auth error:', error);
+    res.status(403).json({
+      success: false,
+      message: 'Role verification failed'
+    });
+  }
 };
 
-module.exports = {
-    adminAuth,
-    adminRoleAuth,
-    adminPermissionAuth
-}; 
+const adminPermissionAuth = (requiredPermission) => (req, res, next) => {
+  try {
+    if (!req.admin) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Super admin has all permissions
+    if (req.admin.role === 'super_admin') {
+      return next();
+    }
+
+    // Check if admin has the required permission
+    if (!req.admin.permissions || !req.admin.permissions.includes(requiredPermission)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Insufficient permissions'
+      });
+    }
+
+    next();
+  } catch (error) {
+    logger.error('Admin permission auth error:', error);
+    res.status(403).json({
+      success: false,
+      message: 'Permission verification failed'
+    });
+  }
+};
+
+module.exports = { adminAuth, adminRoleAuth, adminPermissionAuth };

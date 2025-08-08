@@ -16,6 +16,8 @@ const createWithdrawalTables = require('./migrations/create_withdrawal_tables');
 const createAdminTables = require('./migrations/create_admin_tables');
 const createDocumentVerificationTables = require('./migrations/create_document_verification_tables');
 const createUserManagementTables = require('./migrations/create_user_management_tables');
+const addCoreSystemSettings = require('./migrations/add_core_system_settings');
+const createSystemMonitoringTables = require('./migrations/create_system_monitoring_tables');
 
 // Migration registry
 const migrations = [
@@ -88,6 +90,16 @@ const migrations = [
     name: 'create_user_management_tables',
     migration: createUserManagementTables,
     description: 'Create user management and reporting system tables'
+  },
+  {
+    name: 'add_core_system_settings',
+    migration: addCoreSystemSettings,
+    description: 'Add core system settings with categories'
+  },
+  {
+    name: 'create_system_monitoring_tables',
+    migration: createSystemMonitoringTables,
+    description: 'Create system monitoring and audit logging tables'
   }
 ];
 
