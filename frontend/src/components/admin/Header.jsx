@@ -3,13 +3,39 @@ import { Bell, User, Settings, ChevronDown } from 'lucide-react'
 import { useAuth } from '../../utils/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import NotificationsModal from './NotificationsModal'
+import api from '../../utils/api'
 
 const Header = ({ admin }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const { logout } = useAuth()
   const navigate = useNavigate()
   const profileMenuRef = useRef(null)
+
+  // Fetch unread notification count
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await api.get('/api/admin/notifications?read=false&limit=1')
+      const notifications = response.data.data.notifications || []
+      // Get total count from pagination or count the notifications
+      const totalUnread = response.data.data.pagination?.total || notifications.length
+      setUnreadCount(totalUnread)
+    } catch (error) {
+      console.error('Error fetching unread count:', error)
+      setUnreadCount(0)
+    }
+  }
+
+  // Load unread count on component mount and set up periodic refresh
+  useEffect(() => {
+    fetchUnreadCount()
+    
+    // Refresh count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000)
+    
+    return () => clearInterval(interval)
+  }, [])
 
   // Close profile menu when clicking outside
   useEffect(() => {
@@ -34,9 +60,15 @@ const Header = ({ admin }) => {
     navigate('/admin/settings')
   }
 
-  const handleProfileClick = () => {
+    const handleProfileClick = () => {
     setShowProfileMenu(false)
     navigate('/admin/profile')
+  }
+
+  const handleNotificationsClose = () => {
+    setShowNotifications(false)
+    // Refresh unread count when modal is closed in case notifications were marked as read
+    fetchUnreadCount()
   }
 
   return (
@@ -61,7 +93,9 @@ const Header = ({ admin }) => {
               className="relative p-2 text-text-secondary hover:text-text-primary hover:bg-background-tertiary rounded-lg transition-colors duration-200"
             >
               <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+              )}
             </button>
 
             {/* Profile Menu */}
@@ -120,7 +154,7 @@ const Header = ({ admin }) => {
       {/* Notifications Modal */}
       <NotificationsModal 
         isOpen={showNotifications} 
-        onClose={() => setShowNotifications(false)} 
+        onClose={handleNotificationsClose} 
       />
     </>
   )

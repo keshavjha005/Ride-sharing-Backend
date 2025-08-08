@@ -16,46 +16,22 @@ const NotificationsModal = ({ isOpen, onClose }) => {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      // For now, we'll use mock data since we don't have a notifications API yet
-      const mockNotifications = [
-        {
-          id: 1,
-          type: 'info',
-          title: 'System Update',
-          message: 'New dashboard features have been deployed',
-          timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-          read: false
-        },
-        {
-          id: 2,
-          type: 'success',
-          title: 'User Registration',
-          message: 'New user registered: john.doe@example.com',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-          read: false
-        },
-        {
-          id: 3,
-          type: 'warning',
-          title: 'Ride Dispute',
-          message: 'New ride dispute requires attention',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-          read: true
-        },
-        {
-          id: 4,
-          type: 'error',
-          title: 'Payment Failed',
-          message: 'Payment processing failed for ride #12345',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3), // 3 hours ago
-          read: true
-        }
-      ];
-      setNotifications(mockNotifications);
+      const response = await api.get('/api/admin/notifications');
+      setNotifications(response.data.data.notifications || []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      setNotifications([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.put('/api/admin/notifications/mark-all-read');
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
     }
   };
 
@@ -196,10 +172,7 @@ const NotificationsModal = ({ isOpen, onClose }) => {
         {/* Footer */}
         <div className="p-4 border-t border-border">
           <button
-            onClick={() => {
-              // Mark all as read functionality
-              setNotifications(notifications.map(n => ({ ...n, read: true })));
-            }}
+            onClick={handleMarkAllAsRead}
             className="w-full px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-background-tertiary rounded-lg transition-colors"
           >
             Mark all as read

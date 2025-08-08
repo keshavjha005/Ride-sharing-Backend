@@ -13,6 +13,19 @@ import {
   TrendingUp,
   TrendingDown
 } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts';
 import toast from 'react-hot-toast';
 
 const Analytics = () => {
@@ -129,6 +142,62 @@ const Analytics = () => {
     }
   };
 
+  const renderChart = (data, type) => {
+    // Format data for charts
+    const chartData = data.map((item, index) => ({
+      date: item.date || `Day ${index + 1}`,
+      value: getChartValue(item, type),
+      ...item
+    }));
+
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#3E3F47" />
+          <XAxis 
+            dataKey="date" 
+            stroke="#B0B3BD"
+            fontSize={12}
+          />
+          <YAxis 
+            stroke="#B0B3BD"
+            fontSize={12}
+          />
+          <Tooltip 
+            contentStyle={{
+              backgroundColor: '#2A2B32',
+              border: '1px solid #3E3F47',
+              borderRadius: '8px',
+              color: '#FFFFFF'
+            }}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="value" 
+            stroke="#FD7A00" 
+            strokeWidth={2}
+            dot={{ fill: '#FD7A00', strokeWidth: 2, r: 4 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  };
+
+  const getChartValue = (item, type) => {
+    switch (type) {
+      case 'users':
+        return item.new_users || item.total_users || 0;
+      case 'rides':
+        return item.total_rides || item.completed_rides || 0;
+      case 'financial':
+        return item.total_revenue || item.revenue || 0;
+      case 'system':
+        return item.total_logs || item.requests || 0;
+      default:
+        return 0;
+    }
+  };
+
   const convertToCSV = (data) => {
     if (!data || data.length === 0) return '';
     
@@ -201,13 +270,20 @@ const Analytics = () => {
           ))}
         </div>
 
-        {/* Chart Placeholder */}
-        <div className="bg-background-tertiary rounded-lg p-8 text-center">
-          <BarChart3 className="w-12 h-12 text-text-muted mx-auto mb-4" />
-          <p className="text-text-muted">Chart visualization would be implemented here</p>
-          <p className="text-sm text-text-muted mt-2">
-            Data points: {data.data?.length || 0}
-          </p>
+        {/* Chart Visualization */}
+        <div className="bg-background-tertiary rounded-lg p-4">
+          {data.data && data.data.length > 0 ? (
+            <div className="h-64">
+              {renderChart(data.data, type)}
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center">
+              <div className="text-center">
+                <BarChart3 className="w-12 h-12 text-text-muted mx-auto mb-4" />
+                <p className="text-text-muted">No data available for this period</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

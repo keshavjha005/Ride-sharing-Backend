@@ -906,6 +906,93 @@ class NotificationController {
   }
 
   /**
+   * Get admin notifications
+   */
+  static async getAdminNotifications(req, res) {
+    try {
+      const { page = 1, limit = 20, type, read } = req.query;
+      const offset = (page - 1) * limit;
+
+      const filters = {
+        recipient_type: 'admin',
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      };
+
+      if (type) filters.notification_type = type;
+      if (read !== undefined) filters.is_read = read === 'true';
+
+      const notifications = await UserNotification.findAll(filters);
+
+      res.json({
+        success: true,
+        data: {
+          notifications,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: notifications.length
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('Error getting admin notifications:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get admin notifications',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Mark all notifications as read for admin
+   */
+  static async markAllNotificationsAsRead(req, res) {
+    try {
+      const adminId = req.admin.id;
+      
+      await UserNotification.markAllAsRead(adminId, 'admin');
+
+      res.json({
+        success: true,
+        message: 'All notifications marked as read'
+      });
+    } catch (error) {
+      logger.error('Error marking all notifications as read:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to mark notifications as read',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Mark specific notification as read
+   */
+  static async markNotificationAsRead(req, res) {
+    try {
+      const { id } = req.params;
+      const adminId = req.admin.id;
+
+      await UserNotification.markAsRead(id, adminId);
+
+      res.json({
+        success: true,
+        message: 'Notification marked as read'
+      });
+    } catch (error) {
+      logger.error('Error marking notification as read:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to mark notification as read',
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Get queue statistics
    */
   static async getQueueStatistics(req, res) {

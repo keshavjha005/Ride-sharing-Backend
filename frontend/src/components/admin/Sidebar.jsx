@@ -108,7 +108,7 @@ const Sidebar = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 overflow-y-auto">
+      <nav className="flex-1 p-4 overflow-y-auto scrollbar-hide">
         <ul className="space-y-2">
           {navItems.map((item) => {
             // Check if item requires super admin and current user is not super admin

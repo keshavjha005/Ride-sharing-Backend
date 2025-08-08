@@ -39,52 +39,7 @@ const Reports = () => {
   const [generatingReport, setGeneratingReport] = useState(null);
   const [error, setError] = useState(null);
 
-  // Mock data for demonstration
-  const mockScheduledReports = [
-    {
-      id: 'sr-001',
-      report_name_ar: 'تقرير المستخدمين الأسبوعي',
-      report_name_en: 'Weekly User Report',
-      report_type: 'user_analytics',
-      schedule_type: 'weekly',
-      schedule_config: { dayOfWeek: 1, time: '09:00' },
-      recipients: ['admin@mate.com'],
-      report_format: 'pdf',
-      is_active: true,
-      created_by: 'admin-001',
-      next_generation_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 'sr-002',
-      report_name_ar: 'تقرير الرحلات اليومي',
-      report_name_en: 'Daily Ride Report',
-      report_type: 'ride_analytics',
-      schedule_type: 'daily',
-      schedule_config: { time: '18:00' },
-      recipients: ['operations@mate.com'],
-      report_format: 'excel',
-      is_active: true,
-      created_by: 'admin-001',
-      next_generation_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 'sr-003',
-      report_name_ar: 'التقرير المالي الشهري',
-      report_name_en: 'Monthly Financial Report',
-      report_type: 'financial_analytics',
-      schedule_type: 'monthly',
-      schedule_config: { dayOfMonth: 1, time: '10:00' },
-      recipients: ['finance@mate.com', 'admin@mate.com'],
-      report_format: 'pdf',
-      is_active: false,
-      created_by: 'admin-001',
-      next_generation_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      created_at: new Date().toISOString()
-    }
-  ];
-
+  // Configuration for report types, schedule types, and formats
   const reportTypes = [
     { value: 'user_analytics', label: 'User Analytics', ar: 'تحليلات المستخدمين', icon: '👥' },
     { value: 'ride_analytics', label: 'Ride Analytics', ar: 'تحليلات الرحلات', icon: '🚗' },
@@ -123,15 +78,9 @@ const Reports = () => {
       setScheduledReports(response.data.data.reports || []);
     } catch (error) {
       console.error('Error fetching scheduled reports:', error);
-      
-      // If API fails, use mock data for demonstration
-      if (error.response?.status === 500 || error.code === 'ERR_NETWORK') {
-        setScheduledReports(mockScheduledReports);
-        toast.success('Using demo data - Reports page is working!');
-      } else {
-        setError('Failed to load scheduled reports');
-        toast.error('Failed to load scheduled reports');
-      }
+      setError('Failed to load scheduled reports');
+      toast.error('Failed to load scheduled reports');
+      setScheduledReports([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -145,12 +94,17 @@ const Reports = () => {
   const handleCreateReport = async () => {
     try {
       const payload = {
-        ...formData,
-        recipients: formData.recipients.filter(email => email.trim() !== '')
+        report_name_ar: formData.reportNameAr,
+        report_name_en: formData.reportNameEn,
+        report_type: formData.reportType,
+        schedule_type: formData.scheduleType,
+        schedule_config: formData.scheduleConfig,
+        recipients: formData.recipients.filter(email => email.trim() !== ''),
+        report_format: formData.reportFormat
       };
 
       // Validate required fields
-      if (!payload.reportNameEn.trim()) {
+      if (!payload.report_name_en.trim()) {
         toast.error('Report name in English is required');
         return;
       }
@@ -167,42 +121,24 @@ const Reports = () => {
       fetchScheduledReports();
     } catch (error) {
       console.error('Error creating scheduled report:', error);
-      
-      // For demo purposes, add to mock data
-      if (error.response?.status === 500 || error.code === 'ERR_NETWORK') {
-        const newReport = {
-          id: `sr-${Date.now()}`,
-          report_name_ar: payload.reportNameAr,
-          report_name_en: payload.reportNameEn,
-          report_type: payload.reportType,
-          schedule_type: payload.scheduleType,
-          schedule_config: payload.scheduleConfig,
-          recipients: payload.recipients,
-          report_format: payload.reportFormat,
-          is_active: true,
-          created_by: 'admin-001',
-          next_generation_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date().toISOString()
-        };
-        setScheduledReports(prev => [newReport, ...prev]);
-        toast.success('Scheduled report created successfully (demo mode)');
-        setShowCreateModal(false);
-        resetForm();
-      } else {
-        toast.error('Failed to create scheduled report');
-      }
+      toast.error(error.response?.data?.message || 'Failed to create scheduled report');
     }
   };
 
   const handleUpdateReport = async () => {
     try {
       const payload = {
-        ...formData,
-        recipients: formData.recipients.filter(email => email.trim() !== '')
+        report_name_ar: formData.reportNameAr,
+        report_name_en: formData.reportNameEn,
+        report_type: formData.reportType,
+        schedule_type: formData.scheduleType,
+        schedule_config: formData.scheduleConfig,
+        recipients: formData.recipients.filter(email => email.trim() !== ''),
+        report_format: formData.reportFormat
       };
 
       // Validate required fields
-      if (!payload.reportNameEn.trim()) {
+      if (!payload.report_name_en.trim()) {
         toast.error('Report name in English is required');
         return;
       }
@@ -219,20 +155,7 @@ const Reports = () => {
       fetchScheduledReports();
     } catch (error) {
       console.error('Error updating scheduled report:', error);
-      
-      // For demo purposes, update mock data
-      if (error.response?.status === 500 || error.code === 'ERR_NETWORK') {
-        setScheduledReports(prev => prev.map(report => 
-          report.id === selectedReport.id 
-            ? { ...report, ...payload }
-            : report
-        ));
-        toast.success('Scheduled report updated successfully (demo mode)');
-        setShowEditModal(false);
-        resetForm();
-      } else {
-        toast.error('Failed to update scheduled report');
-      }
+      toast.error(error.response?.data?.message || 'Failed to update scheduled report');
     }
   };
 
@@ -266,14 +189,7 @@ const Reports = () => {
       fetchScheduledReports();
     } catch (error) {
       console.error('Error deleting scheduled report:', error);
-      
-      // For demo purposes, remove from mock data
-      if (error.response?.status === 500 || error.code === 'ERR_NETWORK') {
-        setScheduledReports(prev => prev.filter(report => report.id !== reportId));
-        toast.success('Scheduled report deleted successfully (demo mode)');
-      } else {
-        toast.error('Failed to delete scheduled report');
-      }
+      toast.error(error.response?.data?.message || 'Failed to delete scheduled report');
     }
   };
 
@@ -321,20 +237,14 @@ const Reports = () => {
       });
       
       toast.success('Report generated successfully');
-      console.log('Generated report:', response.data.data);
       
-      // In a real implementation, you might want to show the report or download it
+      // Handle the generated report - could trigger download or show preview
+      if (response.data.data.downloadUrl) {
+        window.open(response.data.data.downloadUrl, '_blank');
+      }
     } catch (error) {
       console.error('Error generating report:', error);
-      
-      // For demo purposes, simulate success
-      if (error.response?.status === 500 || error.code === 'ERR_NETWORK') {
-        setTimeout(() => {
-          toast.success('Report generated successfully (demo mode)');
-        }, 1000);
-      } else {
-        toast.error('Failed to generate report');
-      }
+      toast.error(error.response?.data?.message || 'Failed to generate report');
     } finally {
       setGeneratingReport(null);
     }
@@ -426,15 +336,15 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Demo Mode Notice */}
+      {/* Error Notice */}
       {error && (
-        <div className="mb-6 p-4 bg-warning/10 border border-warning/20 rounded-lg">
+        <div className="mb-6 p-4 bg-error/10 border border-error/20 rounded-lg">
           <div className="flex items-center space-x-2">
-            <AlertCircle className="w-5 h-5 text-warning" />
-            <span className="text-warning font-medium">Demo Mode</span>
+            <AlertCircle className="w-5 h-5 text-error" />
+            <span className="text-error font-medium">Error</span>
           </div>
           <p className="text-text-secondary mt-1">
-            Running in demo mode with sample data. All actions are simulated.
+            {error}
           </p>
         </div>
       )}

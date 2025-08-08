@@ -14,6 +14,7 @@ const ReportingController = require('../controllers/reportingController');
 const AdminManagementController = require('../controllers/adminManagementController');
 const AdminPricingController = require('../controllers/adminPricingController');
 const AdminVehicleController = require('../controllers/adminVehicleController');
+const NotificationController = require('../controllers/notificationController');
 const { adminAuth, adminRoleAuth, adminPermissionAuth } = require('../middleware/adminAuth');
 
 // Define required permissions for different operations
@@ -169,11 +170,16 @@ router.get('/system-monitoring/audit-logs',
 );
 
 // Reporting routes (admin auth required)
-// router.get('/scheduled-reports', adminAuth, ReportingController.getScheduledReports);
-// router.post('/scheduled-reports', adminAuth, ReportingController.createScheduledReport);
-// router.put('/scheduled-reports/:id', adminAuth, ReportingController.updateScheduledReport);
-// router.delete('/scheduled-reports/:id', adminAuth, ReportingController.deleteScheduledReport);
-// router.post('/scheduled-reports/:id/generate', adminAuth, ReportingController.generateReport);
+router.get('/scheduled-reports', adminAuth, adminPermissionAuth(PERMISSIONS.REPORTING), ReportingController.getScheduledReports);
+router.post('/scheduled-reports', adminAuth, adminPermissionAuth(PERMISSIONS.REPORTING), ReportingController.createScheduledReport);
+router.put('/scheduled-reports/:id', adminAuth, adminPermissionAuth(PERMISSIONS.REPORTING), ReportingController.updateScheduledReport);
+router.delete('/scheduled-reports/:id', adminAuth, adminPermissionAuth(PERMISSIONS.REPORTING), ReportingController.deleteScheduledReport);
+router.post('/reports/generate', adminAuth, adminPermissionAuth(PERMISSIONS.REPORTING), ReportingController.generateReport);
+
+// Admin Notification routes (admin auth required)
+router.get('/notifications', adminAuth, NotificationController.getAdminNotifications);
+router.put('/notifications/mark-all-read', adminAuth, NotificationController.markAllNotificationsAsRead);
+router.put('/notifications/:id/read', adminAuth, NotificationController.markNotificationAsRead);
 
 // Admin Pricing Management routes (admin auth required)
 router.get('/pricing/dashboard', adminAuth, AdminPricingController.getPricingDashboard);
