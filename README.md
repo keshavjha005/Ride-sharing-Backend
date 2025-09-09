@@ -1,4 +1,4 @@
-# Mate Backend - Ride-Sharing Platform
+# Mate Backend - Ride-Sharing Platform 🚗
 
 A comprehensive Node.js backend for the Mate ride-sharing/carpooling platform, featuring multi-language support (English/Arabic), multi-currency system, real-time communication, and advanced admin panel.
 
@@ -88,6 +88,14 @@ mate-backend/
 ├── uploads/            # File uploads
 └── package.json
 ```
+### Backend
+Serverless Architecture: Provides flexibility and scalability, eliminating the need for traditional server-based setups.
+API Gateway: Manages and routes API calls from the frontend to the backend.
+Lambda Functions: Processes API calls and interacts with the database.
+DynamoDB: A NoSQL database service, perfect for storing unstructured data like car registration and booking details.
+CloudWatch: Monitors and logs backend activities, offering insights and troubleshooting capabilities.
+IAM (Identity and Access Management): Ensures security by creating users with limited access and defining policies for resource interactions.
+<img width="1723" height="803" alt="image" src="https://github.com/user-attachments/assets/2664bca8-4217-4543-b978-70b0b087c3f6" />
 
 ## 🗄️ Database Schema
 
@@ -105,6 +113,15 @@ mate-backend/
 - `vehicle_types` - Vehicle categories with pricing
 - `pricing_events` - Dynamic pricing rules
 - `commission_settings` - Admin commission rules
+<img width="1838" height="503" alt="image" src="https://github.com/user-attachments/assets/bb009960-2e8d-4f54-b9e1-c3e1d0de6d9a" />
+
+### Search for a Car
+Prospective co-passengers can:
+
+Input search criteria on the application's search page.
+View matching car details based on their search parameters.
+<img width="1838" height="483" alt="image" src="https://github.com/user-attachments/assets/a21f7568-7ea7-4ec6-9581-3501e71628eb" />
+
 
 ## 🌐 API Endpoints
 
@@ -134,6 +151,13 @@ mate-backend/
 - `POST /api/upload/document` - Upload document
 - `DELETE /api/upload/:fileId` - Delete file
 
+### Book a Car
+Users can:
+
+Select a car from the search results.
+Provide booking details and submit.
+Receive a confirmation message upon successful booking.
+Book Car Flow
 ## 🔧 Configuration
 
 ### Environment Variables
